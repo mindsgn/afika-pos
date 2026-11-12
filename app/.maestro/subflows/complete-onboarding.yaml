@@ -1,0 +1,54 @@
+appId: phumzile.afika.pos
+---
+# Shared onboarding steps. scripts/e2e.sh wipes the SQLite database and
+# terminates the app before each flow, so the boot screen always routes through
+# sign-in and this subflow stays reusable. App start-up (including the
+# development-client deep link) lives in start-app; the email/code sign-in
+# lives in sign-in.
+- runFlow: subflows/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-screen"
+    timeout: 30000
+
+# Step 1 of 3: business name.
+- tapOn:
+    id: "business-name"
+- inputText: "Afika Coffee"
+# The numeric keypad has no dismiss key and the tray footer sits under the
+# keyboard. Each entry ends with a short swipe so the next tap lands on the
+# button, not a keypad key (the same pattern as create-flat-white).
+- swipe:
+    direction: DOWN
+    duration: 300
+- tapOn:
+    id: "onboarding-next"
+
+# Step 2 of 3: website (optional).
+- tapOn:
+    id: "business-website"
+- inputText: "afika.app"
+- swipe:
+    direction: DOWN
+    duration: 300
+- tapOn:
+    id: "onboarding-next"
+
+# Step 3 of 3: address, then save.
+- tapOn:
+    id: "business-address"
+- inputText: "12 Long Street, Cape Town"
+- swipe:
+    direction: DOWN
+    duration: 300
+- scrollUntilVisible:
+    element:
+      id: "onboarding-save"
+    direction: DOWN
+- tapOn:
+    id: "onboarding-save"
+
+- assertVisible:
+    id: "search-input"
+- assertVisible:
+    id: "tab-sell"

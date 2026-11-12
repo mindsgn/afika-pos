@@ -29,12 +29,21 @@ func main() {
 	apiToken := strings.TrimSpace(cloudflare.Getenv("API_TOKEN"))
 	privyAppID := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_ID"))
 	privyAppSecret := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_SECRET"))
+	privyClientID := strings.TrimSpace(cloudflare.Getenv("PRIVY_CLIENT_ID"))
 	var privyUsers lib.PrivyUserReader
 	if privyAppID != "" && privyAppSecret != "" {
 		privyUsers, err = lib.NewPrivyUserAPI(privyAppID, privyAppSecret)
 		if err != nil {
 			log.Panicf("[api] configure Privy profile API: %v", err)
 		}
+	}
+	var passwordless lib.PasswordlessClient
+	if privyAppID != "" {
+		passwordless = lib.NewPrivyPasswordlessClient(privyAppID, privyClientID)
+	}
+	sessions := lib.NewSessionCodec(cloudflare.Getenv("SESSION_SECRET"))
+	if passwordless != nil && sessions == nil {
+		log.Printf("[api] WARNING: SESSION_SECRET is not set; website sign-in is disabled")
 	}
 	verifiers := lib.AnyTokenVerifier{lib.NewStaticTokenVerifier(apiToken)}
 	privyKey := strings.TrimSpace(cloudflare.Getenv("PRIVY_VERIFICATION_KEY"))
@@ -53,6 +62,8 @@ func main() {
 		Store:            lib.NewD1Store(db),
 		Verifier:         verifiers,
 		PrivyUsers:       privyUsers,
+		Passwordless:     passwordless,
+		Sessions:         sessions,
 		AllowedOrigins:   splitList(cloudflare.Getenv("API_ALLOWED_ORIGINS")),
 		ReceivingAddress: strings.TrimSpace(cloudflare.Getenv("POS_RECEIVING_ADDRESS")),
 		CheckoutBaseURL:  strings.TrimSpace(cloudflare.Getenv("CHECKOUT_BASE_URL")),

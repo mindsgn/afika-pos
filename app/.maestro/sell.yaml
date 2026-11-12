@@ -1,0 +1,75 @@
+appId: phumzile.afika.pos
+name: Sell a product
+---
+# Full till flow: onboard, add a product, ring it up, create the shareable
+# checkout link, then settle it. The demo confirmation button settles locally
+# even when the payments API is unreachable, so this flow runs offline.
+- runFlow: subflows/start-app.yaml
+- runFlow: subflows/complete-onboarding.yaml
+- runFlow: subflows/create-flat-white.yaml
+
+# Ring up one unit.
+- tapOn:
+    id: "tab-sell"
+- tapOn:
+    id: "product-FLATWHITE"
+- assertVisible:
+    id: "cart-bar"
+- tapOn:
+    id: "cart-bar"
+
+# Checkout: the customer picks an asset on the link, so the cart shows the
+# indicative crypto amount before creating the payment.
+- assertVisible:
+    id: "crypto-amount"
+- scrollUntilVisible:
+    element:
+      id: "total-due"
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "pay-button"
+    direction: DOWN
+- tapOn:
+    id: "pay-button"
+
+# Progress screen with the QR code and shareable link.
+- extendedWaitUntil:
+    visible:
+      id: "checkout-screen"
+    timeout: 15000
+- assertVisible:
+    id: "checkout-amount"
+- assertVisible:
+    id: "checkout-link"
+- assertVisible:
+    id: "checkout-status"
+
+- scrollUntilVisible:
+    element:
+      id: "checkout-simulate"
+    direction: DOWN
+- tapOn:
+    id: "checkout-simulate"
+
+# Settled payment lands on the receipt, which prints the merchant details
+# captured during onboarding.
+- extendedWaitUntil:
+    visible:
+      id: "sale-receipt-no"
+    timeout: 15000
+- assertVisible:
+    id: "payment-success"
+- assertVisible:
+    id: "receipt-text"
+# The receipt is monospaced and centre-padded, and prints the merchant in
+# capitals, so match case-insensitively anywhere in the receipt text.
+- assertVisible:
+    text: "(?i).*afika coffee.*"
+- assertVisible:
+    text: "(?i).*12 long street.*"
+
+- tapOn:
+    id: "done"
+- assertVisible:
+    id: "search-input"

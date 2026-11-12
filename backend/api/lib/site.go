@@ -23,7 +23,7 @@ const siteHead = `
 `
 
 func siteNav() string {
-	return `<header class="wrap nav"><a class="brand" href="/" aria-label="Afika home"><span class="mark" aria-hidden="true">a</span>afika</a><nav class="links" aria-label="Main navigation"><a href="/#how">How it works</a><a class="optional" href="/support">Support</a><a class="button" href="/#get-started">Get the app</a></nav></header>`
+	return `<header class="wrap nav"><a class="brand" href="/" aria-label="Afika home"><span class="mark" aria-hidden="true">a</span>afika</a><nav class="links" aria-label="Main navigation"><a href="/#how">How it works</a><a class="optional" href="/support">Support</a><a href="/signin">Sign in</a><a class="button" href="/#get-started">Get the app</a></nav></header>`
 }
 
 func siteFooter() string {
@@ -82,7 +82,7 @@ func serveSite(w http.ResponseWriter, r *http.Request) bool {
 	case "/support":
 		contentType, content = "text/html; charset=utf-8", supportPage()
 	case "/robots.txt":
-		contentType, content = "text/plain; charset=utf-8", "User-agent: *\nAllow: /\nDisallow: /v1/\n\nSitemap: https://pos.phumzile.studio/sitemap.xml\n"
+		contentType, content = "text/plain; charset=utf-8", "User-agent: *\nAllow: /\nDisallow: /v1/\nDisallow: /signin\nDisallow: /account\n\nSitemap: https://pos.phumzile.studio/sitemap.xml\n"
 	case "/sitemap.xml":
 		contentType, content = "application/xml; charset=utf-8", `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://pos.phumzile.studio/</loc></url><url><loc>https://pos.phumzile.studio/terms</loc></url><url><loc>https://pos.phumzile.studio/privacy</loc></url><url><loc>https://pos.phumzile.studio/support</loc></url></urlset>`
 	case "/social-card.svg":

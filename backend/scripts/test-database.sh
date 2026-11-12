@@ -13,7 +13,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-workers=(balance forex transaction)
+migration_dirs=(api workers/balance workers/forex workers/transaction workers/receipt)
 
 if [[ -n "${AFIKA_D1_PERSIST_DIR:-}" ]]; then
 	persist_dir="$AFIKA_D1_PERSIST_DIR"
@@ -32,14 +32,18 @@ trap cleanup EXIT
 
 echo "==> Local D1 state: $persist_dir"
 
-for worker in "${workers[@]}"; do
-	worker_dir="$repo_root/workers/$worker"
+for worker in "${migration_dirs[@]}"; do
+	worker_dir="$repo_root/$worker"
 	if [[ ! -x "$worker_dir/node_modules/.bin/wrangler" ]]; then
-		echo "==> Installing dependencies for workers/$worker"
-		(cd "$worker_dir" && npm ci --no-audit --no-fund --silent)
+		echo "==> Installing dependencies for $worker"
+		if [[ -f "$worker_dir/package-lock.json" ]]; then
+			(cd "$worker_dir" && npm ci --no-audit --no-fund --silent)
+		else
+			(cd "$worker_dir" && npm install --no-audit --no-fund --silent)
+		fi
 	fi
 
-	echo "==> Applying workers/$worker migrations"
+	echo "==> Applying $worker migrations"
 	(
 		cd "$worker_dir"
 		CI=1 WRANGLER_SEND_METRICS=false \
@@ -60,8 +64,10 @@ expected_tables=(
 	networks
 	portfolio_snapshots
 	portfolio_summaries
+	pos_payments
 	stocks
 	tokens
+	wallet_settings
 	wallet_transaction_cursors
 	wallet_transactions
 	wallets

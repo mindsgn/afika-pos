@@ -1,0 +1,13 @@
+appId: phumzile.afika.pos
+name: Add a product
+---
+# Onboard, then create a product with opening stock and check it shows up in
+# both the Products tab (management) and the Sell tab (till).
+- runFlow: subflows/start-app.yaml
+- runFlow: subflows/complete-onboarding.yaml
+- runFlow: subflows/create-flat-white.yaml
+
+- tapOn:
+    id: "tab-sell"
+- assertVisible:
+    id: "product-FLATWHITE"

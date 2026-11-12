@@ -1,0 +1,33 @@
+appId: phumzile.afika.pos
+---
+# Starts the app for a test. APP_LAUNCH_URL is provided by scripts/e2e.sh:
+# a development-client deep link into Metro for Debug builds, or the plain
+# app scheme for Release builds.
+- openLink: ${APP_LAUNCH_URL}
+
+# iOS confirms custom-scheme deep links before handing them to the app.
+- runFlow:
+    when:
+      visible: "Open in .*"
+    commands:
+      - tapOn: "^Open$"
+
+# The development client sometimes opens the dev menu over the first screen.
+- runFlow:
+    when:
+      visible: "Runtime version.*"
+    commands:
+      - tapOn: "Close"
+
+# Fallback: if the deep link only reached the Expo launcher, open the saved
+# Metro server from its list.
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      - tapOn: ".*:8081.*"
+      - runFlow:
+          when:
+            visible: "Runtime version.*"
+          commands:
+            - tapOn: "Close"
