@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "493970881459",
+    "project_id": "afika-510408",
+    "storage_bucket": "afika-510408.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:493970881459:android:240294c97dabcf8c0d29c6",
+        "android_client_info": {
+          "package_name": "mindsgn.studio.pockt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "493970881459-d6kstdj7j15bf7oaovlq017idanjomt3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPKnAh5ehYMcA4nKOT9ub9q-xTCGjl0Jc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "493970881459-d6kstdj7j15bf7oaovlq017idanjomt3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "493970881459-hv3jri85vv47eaova1kmqst07t100lhr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "mindsgn.studio.pockt",
+                "app_store_id": "6743122116"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

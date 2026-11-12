@@ -1,0 +1,5 @@
+# Required for Alchemy JSON-RPC calls.
+ALCHEMY_API_KEY=replace-me
+
+# Optional. Name of the D1 binding declared in wrangler.jsonc (default: afika).
+DB_BINDING=afika

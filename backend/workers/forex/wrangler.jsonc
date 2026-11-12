@@ -1,0 +1,44 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "afika-forex",
+	"main": "./build/worker.mjs",
+	"compatibility_date": "2026-10-23",
+	"triggers": {
+		// Once every hour, on the hour.
+		"crons": [
+			"0 * * * *"
+		]
+	},
+	"previews": {},
+	"build": {
+		"command": "npm run build"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			// Shared database: the balance worker reads the same fx_rates table.
+			"binding": "afika",
+			"database_name": "afika",
+			"database_id": "b806cd75-548d-4abc-be85-213a7ba18c6a",
+			"migrations_dir": "migrations"
+		}
+	]
+	/**
+	 * Smart Placement
+	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+	 */
+	// "placement": {  "mode": "smart" }
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/configuration/environment-variables/
+	 * DB_BINDING is optional; it defaults to "afika" in main_wasm.go.
+	 */
+	// "vars": { "DB_BINDING": "afika" }
+}

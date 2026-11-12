@@ -1,0 +1,9 @@
+build
+node_modules
+.wrangler
+.vscode
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+notes.md

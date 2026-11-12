@@ -1,0 +1,10 @@
+# Shared bearer token required by every /v1 route except /v1/health.
+# Use a long random value locally and set the same value with
+# `npx wrangler secret put API_TOKEN` in production.
+API_TOKEN=4ee7a6cd899310f584dee47126a42f583061425484dfaab90f70b34ba8757035
+
+# Optional. Name of the D1 binding declared in wrangler.jsonc (default: afika).
+DB_BINDING=afika
+
+# Optional. Comma-separated browser origins allowed by CORS, or "*".
+# API_ALLOWED_ORIGINS=http://localhost:8081

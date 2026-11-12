@@ -1,4 +1,4 @@
-# Crypto POS
+# Afika
 
 An offline-first point-of-sale app for Android and iOS that takes **USDC, Bitcoin and Ethereum** payments.
 Built with Expo, Drizzle ORM, SQLite and TypeScript. Everything lives in a local database on the device.
@@ -10,11 +10,11 @@ Built with Expo, Drizzle ORM, SQLite and TypeScript. Everything lives in a local
 
 ## Short description
 
-Offline POS for small shops that accept USDC, Bitcoin and Ethereum, with stock, refunds and profit tracking.
+Afika POS for small shops that accept USDC, Bitcoin and Ethereum, with stock, refunds and profit tracking.
 
 ## Full description
 
-Crypto POS is a mobile point-of-sale system that runs entirely offline. A cashier builds a cart from a searchable
+Afika is a mobile point-of-sale system that runs entirely offline. A cashier builds a cart from a searchable
 product catalogue, applies a discount, attaches a loyalty customer, and pays in USDC, BTC or ETH. The sale is
 priced in rand, converted to the chosen coin at a simulated rate, and recorded with a transaction hash.
 

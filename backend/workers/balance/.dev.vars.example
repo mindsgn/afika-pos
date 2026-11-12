@@ -1,0 +1,5 @@
+# Copy to .dev.vars for `npm run dev`.
+ALCHEMY_API_KEY=replace-me
+
+# Optional. Name of the D1 binding declared in wrangler.jsonc (default: afika).
+DB_BINDING=afika
