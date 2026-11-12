@@ -12,3 +12,5 @@ android
 eas.json
 yarn.lock
 store-assets
+*.json
+*.plist
