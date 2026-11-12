@@ -1,0 +1,140 @@
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Bridge.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Bridge.hpp
+index 9cbee63..8cce0bd 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Bridge.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Bridge.hpp
+@@ -306,14 +306,14 @@ namespace VisionCamera { class HybridZoomGestureControllerSpec_cxx; }
+ #include "HybridTapToFocusGestureControllerSpec.hpp"
+ #include "HybridZoomGestureControllerSpec.hpp"
+ #include "InterruptionReason.hpp"
+-#include "ListenerSubscription.hpp"
++#include <VisionCamera/ListenerSubscription.hpp>
+ #include "MediaType.hpp"
+ #include "MeteringMode.hpp"
+ #include "MirrorMode.hpp"
+ #include "NativeBuffer.hpp"
+ #include "PhotoFile.hpp"
+ #include "PhotoHDRConstraint.hpp"
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include "PixelFormatConstraint.hpp"
+ #include "Point.hpp"
+ #include "PreviewImplementationMode.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Umbrella.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Umbrella.hpp
+index 1441880..763f36d 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Umbrella.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/VisionCamera-Swift-Cxx-Umbrella.hpp
+@@ -300,7 +300,7 @@ namespace margelo::nitro::camera { struct WhiteBalanceTemperatureAndTint; }
+ #include "HybridTapToFocusGestureControllerSpec.hpp"
+ #include "HybridZoomGestureControllerSpec.hpp"
+ #include "InterruptionReason.hpp"
+-#include "ListenerSubscription.hpp"
++#include <VisionCamera/ListenerSubscription.hpp>
+ #include "MediaType.hpp"
+ #include "MeteringMode.hpp"
+ #include "MirrorMode.hpp"
+@@ -313,7 +313,7 @@ namespace margelo::nitro::camera { struct WhiteBalanceTemperatureAndTint; }
+ #include "PhotoFile.hpp"
+ #include "PhotoHDRConstraint.hpp"
+ #include "PhotoOutputOptions.hpp"
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include "PixelFormatConstraint.hpp"
+ #include "Point.hpp"
+ #include "PreviewImplementationMode.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraControllerSpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraControllerSpecSwift.hpp
+index 10ad4e6..af99594 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraControllerSpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraControllerSpecSwift.hpp
+@@ -59,7 +59,7 @@ namespace margelo::nitro::camera { struct WhiteBalanceTemperatureAndTint; }
+ #include <vector>
+ #include <NitroModules/Null.hpp>
+ #include <variant>
+-#include "ListenerSubscription.hpp"
++#include <VisionCamera/ListenerSubscription.hpp>
+ #include <functional>
+ #include "WhiteBalanceTemperatureAndTint.hpp"
+ 
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceFactorySpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceFactorySpecSwift.hpp
+index d1da50f..610a7bb 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceFactorySpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceFactorySpecSwift.hpp
+@@ -25,7 +25,7 @@ namespace margelo::nitro::camera { enum class TargetCameraPosition; }
+ #include "HybridCameraDeviceSpec.hpp"
+ #include <vector>
+ #include <optional>
+-#include "ListenerSubscription.hpp"
++#include <VisionCamera/ListenerSubscription.hpp>
+ #include <functional>
+ #include <string>
+ #include "HybridCameraExtensionSpec.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceSpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceSpecSwift.hpp
+index d851813..9469f2d 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceSpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraDeviceSpecSwift.hpp
+@@ -49,7 +49,7 @@ namespace margelo::nitro::camera { class HybridCameraSessionConfigSpec; }
+ #include <memory>
+ #include "HybridCameraDeviceSpec.hpp"
+ #include <vector>
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include "DynamicRange.hpp"
+ #include "DynamicRangeBitDepth.hpp"
+ #include "ColorSpace.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraFactorySpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraFactorySpecSwift.hpp
+index 34d447f..9b0c42f 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraFactorySpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraFactorySpecSwift.hpp
+@@ -129,7 +129,7 @@ namespace margelo::nitro::camera { class HybridMeteringPointSpec; }
+ #include "TargetDynamicRangeBitDepth.hpp"
+ #include "TargetColorSpace.hpp"
+ #include "TargetColorRange.hpp"
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include <optional>
+ #include "HybridCameraDeviceFactorySpec.hpp"
+ #include "HybridCameraPhotoOutputSpec.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionConfigSpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionConfigSpecSwift.hpp
+index 9a67496..91001a5 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionConfigSpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionConfigSpecSwift.hpp
+@@ -33,7 +33,7 @@ namespace margelo::nitro::camera { enum class AutoFocusSystem; }
+ #include "TargetDynamicRangeBitDepth.hpp"
+ #include "TargetColorSpace.hpp"
+ #include "TargetColorRange.hpp"
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include "AutoFocusSystem.hpp"
+ 
+ #include "VisionCamera-Swift-Cxx-Umbrella.hpp"
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionSpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionSpecSwift.hpp
+index 74b2ed6..d06c383 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionSpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridCameraSessionSpecSwift.hpp
+@@ -87,12 +87,12 @@ namespace margelo::nitro::camera { enum class InterruptionReason; }
+ #include "TargetDynamicRangeBitDepth.hpp"
+ #include "TargetColorSpace.hpp"
+ #include "TargetColorRange.hpp"
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include <optional>
+ #include "HybridCameraSessionConfigSpec.hpp"
+ #include <functional>
+ #include "CameraSessionConfiguration.hpp"
+-#include "ListenerSubscription.hpp"
++#include <VisionCamera/ListenerSubscription.hpp>
+ #include <exception>
+ #include "InterruptionReason.hpp"
+ 
+diff --git a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridFrameSpecSwift.hpp b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridFrameSpecSwift.hpp
+index 4fab75f..b37125c 100644
+--- a/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridFrameSpecSwift.hpp
++++ b/node_modules/react-native-vision-camera/nitrogen/generated/ios/c++/HybridFrameSpecSwift.hpp
+@@ -25,7 +25,7 @@ namespace margelo::nitro::camera { struct NativeBuffer; }
+ // Forward declaration of `Point` to properly resolve imports.
+ namespace margelo::nitro::camera { struct Point; }
+ 
+-#include "PixelFormat.hpp"
++#include <VisionCamera/PixelFormat.hpp>
+ #include "CameraOrientation.hpp"
+ #include <vector>
+ #include <optional>

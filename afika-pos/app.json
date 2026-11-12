@@ -1,0 +1,113 @@
+{
+  "expo": {
+    "name": "AFIKA",
+    "slug": "afika",
+    "version": "0.0.1",
+    "scheme": "afika",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./src/assets/afika.icon",
+      "usesAppleSignIn": true,
+      "supportsTablet": false,
+      "bundleIdentifier": "mindsgn.studio.pockt",
+      "appleTeamId": "B3U8UM2966",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera to scan wallet addresses",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        },
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "googleServicesFile": "../../GoogleService-Info.plist"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1C1C1E",
+        "foregroundImage": "./src/assets/android-icon-foreground.png",
+        "backgroundImage": "./src/assets/android-icon-background.png",
+        "monochromeImage": "./src/assets/android-icon-monochrome.png"
+      },
+      "package": "mindsgn.studio.pockt",
+      "versionCode": 1,
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "../../google-services.json",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-apple-authentication",
+      "expo-web-browser",
+      "expo-localization",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/analytics",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": [
+              "armeabi-v7a",
+              "arm64-v8a",
+              "x86",
+              "x86_64"
+            ],
+            "minSdkVersion": 36,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "versionCode": 1,
+            "enableBundleCompression": true,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-dontwarn com.gemalto.jp2.**\n-dontwarn com.tom_roush.pdfbox.filter.JPXFilter\n# JNA 5.17.0 Android AAR: Native.getWindowHandle0(java.awt.Component) is a desktop entry point. Spark UniFFI only calls Native.load.\n-dontwarn java.awt.Component"
+          },
+          "ios": {
+            "useFrameworks": "static",
+            "usePrecompiledModules": false,
+            "enableSceneSupport": true,
+            "forceStaticLinking": [
+              "RNFBAnalytics",
+              "RNFBApp",
+              "RNFBAppCheck",
+              "RNFBAuth",
+              "RNFBCrashlytics",
+              "RNFBMessaging",
+              "RNFBRemoteConfig",
+              "RNFBStorage"
+            ]
+          }
+        }
+      ],
+      "expo-sqlite",
+      "expo-status-bar",
+      "expo-font",
+      "expo-background-task",
+      "./plugins/withGrpcSwiftModuleFix.js",
+      "./plugins/withAndroidReleaseNodeEnv.js",
+      [
+        "expo-image",
+        {
+          "disableLibdav1d": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "privyAppId": "cmuqob0zx011s0cjqgmza7ovk",
+      "privyClientId": "client-WY6dzubtPqBKGnPj2TUbUok8KRXN626SLDxiq31kbrbm3",
+      "eas": {
+        "projectId": "c88077d4-dc15-4dbf-a389-9a1bf135feec"
+      }
+    }
+  }
+}

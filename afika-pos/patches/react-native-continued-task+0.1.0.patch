@@ -1,0 +1,39 @@
+diff --git a/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Bridge.hpp b/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Bridge.hpp
+index 728f695..bdbc250 100644
+--- a/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Bridge.hpp
++++ b/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Bridge.hpp
+@@ -47,7 +47,7 @@ namespace ContinuedTask { class HybridContinuedTaskSpec_cxx; }
+ #include "HybridContinuedTaskSpec.hpp"
+ #include "IOSTaskOptions.hpp"
+ #include "KnownTask.hpp"
+-#include "ListenerSubscription.hpp"
++#include <ContinuedTask/ListenerSubscription.hpp>
+ #include "NativeStopDetail.hpp"
+ #include "SubmissionStrategy.hpp"
+ #include "TaskStopEvent.hpp"
+diff --git a/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Umbrella.hpp b/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Umbrella.hpp
+index d61ab45..e2e0ed2 100644
+--- a/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Umbrella.hpp
++++ b/node_modules/react-native-continued-task/nitrogen/generated/ios/ContinuedTask-Swift-Cxx-Umbrella.hpp
+@@ -44,7 +44,7 @@ namespace margelo::nitro::continuedtask { enum class TaskStopReason; }
+ #include "HybridContinuedTaskSpec.hpp"
+ #include "IOSTaskOptions.hpp"
+ #include "KnownTask.hpp"
+-#include "ListenerSubscription.hpp"
++#include <ContinuedTask/ListenerSubscription.hpp>
+ #include "NativeStopDetail.hpp"
+ #include "SubmissionStrategy.hpp"
+ #include "TaskStopEvent.hpp"
+diff --git a/node_modules/react-native-continued-task/nitrogen/generated/ios/c++/HybridContinuedTaskSpecSwift.hpp b/node_modules/react-native-continued-task/nitrogen/generated/ios/c++/HybridContinuedTaskSpecSwift.hpp
+index 0af3dc3..26da8e0 100644
+--- a/node_modules/react-native-continued-task/nitrogen/generated/ios/c++/HybridContinuedTaskSpecSwift.hpp
++++ b/node_modules/react-native-continued-task/nitrogen/generated/ios/c++/HybridContinuedTaskSpecSwift.hpp
+@@ -25,7 +25,7 @@ namespace margelo::nitro::continuedtask { struct NativeStopDetail; }
+ 
+ #include <string>
+ #include "ContinuedTaskState.hpp"
+-#include "ListenerSubscription.hpp"
++#include <ContinuedTask/ListenerSubscription.hpp>
+ #include <functional>
+ #include "TaskStopEvent.hpp"
+ #include "TaskStopReason.hpp"

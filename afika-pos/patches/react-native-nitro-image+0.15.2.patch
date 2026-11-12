@@ -1,0 +1,65 @@
+diff --git a/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Bridge.hpp b/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Bridge.hpp
+index 9b216f6..f09145e 100644
+--- a/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Bridge.hpp
++++ b/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Bridge.hpp
+@@ -59,7 +59,7 @@ namespace NitroImage { class HybridNitroImageViewSpec_cxx; }
+ #include "HybridImageUtilsSpec.hpp"
+ #include "HybridNitroImageViewSpec.hpp"
+ #include "ImageFormat.hpp"
+-#include "PixelFormat.hpp"
++#include <NitroImage/PixelFormat.hpp>
+ #include "RawPixelData.hpp"
+ #include "ResizeMode.hpp"
+ #include <NitroModules/ArrayBuffer.hpp>
+diff --git a/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Umbrella.hpp b/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Umbrella.hpp
+index 50d09b0..78732be 100644
+--- a/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Umbrella.hpp
++++ b/node_modules/react-native-nitro-image/nitrogen/generated/ios/NitroImage-Swift-Cxx-Umbrella.hpp
+@@ -43,7 +43,7 @@ namespace margelo::nitro::image { enum class ResizeMode; }
+ #include "HybridImageUtilsSpec.hpp"
+ #include "HybridNitroImageViewSpec.hpp"
+ #include "ImageFormat.hpp"
+-#include "PixelFormat.hpp"
++#include <NitroImage/PixelFormat.hpp>
+ #include "RawPixelData.hpp"
+ #include "ResizeMode.hpp"
+ #include <NitroModules/ArrayBuffer.hpp>
+diff --git a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageFactorySpecSwift.hpp b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageFactorySpecSwift.hpp
+index 5a2f94d..3c5cfd1 100644
+--- a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageFactorySpecSwift.hpp
++++ b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageFactorySpecSwift.hpp
+@@ -36,7 +36,7 @@ namespace margelo::nitro::image { enum class ImageFormat; }
+ #include "RawPixelData.hpp"
+ #include <NitroModules/ArrayBuffer.hpp>
+ #include <NitroModules/ArrayBufferHolder.hpp>
+-#include "PixelFormat.hpp"
++#include <NitroImage/PixelFormat.hpp>
+ #include "EncodedImageData.hpp"
+ #include "ImageFormat.hpp"
+ 
+diff --git a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageLoaderFactorySpecSwift.hpp b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageLoaderFactorySpecSwift.hpp
+index 97de557..4d213f1 100644
+--- a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageLoaderFactorySpecSwift.hpp
++++ b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageLoaderFactorySpecSwift.hpp
+@@ -31,7 +31,7 @@ namespace margelo::nitro::image { enum class ImageFormat; }
+ #include "RawPixelData.hpp"
+ #include <NitroModules/ArrayBuffer.hpp>
+ #include <NitroModules/ArrayBufferHolder.hpp>
+-#include "PixelFormat.hpp"
++#include <NitroImage/PixelFormat.hpp>
+ #include "EncodedImageData.hpp"
+ #include "ImageFormat.hpp"
+ 
+diff --git a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageSpecSwift.hpp b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageSpecSwift.hpp
+index 665ca25..336bcb7 100644
+--- a/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageSpecSwift.hpp
++++ b/node_modules/react-native-nitro-image/nitrogen/generated/ios/c++/HybridImageSpecSwift.hpp
+@@ -28,7 +28,7 @@ namespace margelo::nitro::image { class HybridImageSpec; }
+ #include "RawPixelData.hpp"
+ #include <NitroModules/ArrayBuffer.hpp>
+ #include <NitroModules/ArrayBufferHolder.hpp>
+-#include "PixelFormat.hpp"
++#include <NitroImage/PixelFormat.hpp>
+ #include <optional>
+ #include <NitroModules/Promise.hpp>
+ #include "EncodedImageData.hpp"

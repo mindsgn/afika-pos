@@ -1,0 +1,11 @@
+diff --git a/node_modules/@buildonspark/spark-sdk/ios/SparkGrpcModule.swift b/node_modules/@buildonspark/spark-sdk/ios/SparkGrpcModule.swift
+index 253fbfb..0315605 100644
+--- a/node_modules/@buildonspark/spark-sdk/ios/SparkGrpcModule.swift
++++ b/node_modules/@buildonspark/spark-sdk/ios/SparkGrpcModule.swift
+@@ -1,5 +1,5 @@
+ import Foundation
+-import GRPC
++import GRPC_Swift
+ import NIOCore
+ import NIOHPACK
+ import NIOTransportServices

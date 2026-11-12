@@ -1,0 +1,14 @@
+.expo
+.maestro
+.yarn
+.env
+.env
+.env.*
+!.env.example
+expo-env.d.ts
+node_modules
+ios
+android
+eas.json
+yarn.lock
+store-assets
