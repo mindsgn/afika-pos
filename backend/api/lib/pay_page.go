@@ -97,11 +97,11 @@ button.opt.selected{border-color:var(--ink);background:#FBFCEC;box-shadow:inset 
 <div class="copy"><button type="button" onclick="copyAddress()">Copy address</button></div>
 <script>
 function copyAddress(){var t=document.getElementById('address').textContent.trim();if(navigator.clipboard){navigator.clipboard.writeText(t);}}
-var paymentId={{.Payment.ID}};
-setInterval(function(){fetch('/v1/pos/payments/'+paymentId,{cache:'no-store'}).then(function(r){return r.json();}).then(function(b){var d=b&&b.data;if(d&&d.status&&d.status!=='pending'){location.reload();}}).catch(function(){});},5000);
+
 </script>
 {{else}}<p class="banner neutral">The merchant has not configured a receiving address yet. Ask them to complete their wallet setup in the POS app.</p>{{end}}
 {{end}}
+{{if not .Paid}}<div class="payment-poll" hx-get="/pay/{{.Payment.ID}}/status" hx-trigger="every 5s" hx-swap="none" aria-hidden="true"></div>{{end}}
 <p class="foot">Secure checkout by Afika. Crypto amounts are locked to the displayed rate for 30 minutes.</p>
 </main></body></html>`))
 
@@ -112,6 +112,10 @@ func (h *Handler) servePayPage(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/pay/"), "/")
+	statusPoll := strings.HasSuffix(id, "/status")
+	if statusPoll {
+		id = strings.TrimSuffix(id, "/status")
+	}
 	if id == "" || strings.Contains(id, "/") || len(id) > 64 {
 		h.renderPayError(w, errors.New("This payment link is not valid."))
 		return true
@@ -120,6 +124,24 @@ func (h *Handler) servePayPage(w http.ResponseWriter, r *http.Request) bool {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Robots-Tag", "noindex")
+
+	if statusPoll {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", "GET")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return true
+		}
+		payment, apiErr := h.loadPOSPayment(r, id)
+		if apiErr != nil {
+			h.renderPayError(w, errors.New(apiErr.message))
+			return true
+		}
+		if payment.Status != posStatusPending {
+			w.Header().Set("HX-Redirect", "/pay/"+id)
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
 
 	var assetChoice string
 	switch r.Method {

@@ -143,6 +143,30 @@ func TestGetPOSPaymentIsPublic(t *testing.T) {
 	}
 }
 
+func TestPayPageStatusPollRedirectsWhenPaymentIsComplete(t *testing.T) {
+	store, _, handler := newTestHandler(t)
+	store.posPayments = map[string]POSPayment{"done": {ID: "done", Status: posStatusPaid}}
+	rec := doRequest(t, handler, http.MethodGet, "/pay/done/status", "", nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("HX-Redirect"); got != "/pay/done" {
+		t.Fatalf("HX-Redirect = %q", got)
+	}
+}
+
+func TestPayPageStatusPollKeepsPendingCheckoutInPlace(t *testing.T) {
+	store, _, handler := newTestHandler(t)
+	store.posPayments = map[string]POSPayment{"pending": {ID: "pending", Status: posStatusPending}}
+	rec := doRequest(t, handler, http.MethodGet, "/pay/pending/status", "", nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("HX-Redirect"); got != "" {
+		t.Fatalf("unexpected redirect: %q", got)
+	}
+}
+
 func TestGetPOSPaymentReportsExpiry(t *testing.T) {
 	store, _, handler := newTestHandler(t)
 	store.posPayments = map[string]POSPayment{

@@ -27,13 +27,32 @@ func main() {
 	defer db.Close()
 
 	apiToken := strings.TrimSpace(cloudflare.Getenv("API_TOKEN"))
-	if apiToken == "" {
-		log.Printf("[api] WARNING: API_TOKEN is not set; every authenticated request will be rejected")
+	privyAppID := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_ID"))
+	privyAppSecret := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_SECRET"))
+	var privyUsers lib.PrivyUserReader
+	if privyAppID != "" && privyAppSecret != "" {
+		privyUsers, err = lib.NewPrivyUserAPI(privyAppID, privyAppSecret)
+		if err != nil {
+			log.Panicf("[api] configure Privy profile API: %v", err)
+		}
+	}
+	verifiers := lib.AnyTokenVerifier{lib.NewStaticTokenVerifier(apiToken)}
+	privyKey := strings.TrimSpace(cloudflare.Getenv("PRIVY_VERIFICATION_KEY"))
+	if privyAppID != "" || privyKey != "" {
+		privyVerifier, err := lib.NewPrivyTokenVerifier(privyAppID, strings.ReplaceAll(privyKey, "\\n", "\n"))
+		if err != nil {
+			log.Panicf("[api] configure Privy verifier: %v", err)
+		}
+		verifiers = append(verifiers, privyVerifier)
+	}
+	if apiToken == "" && len(verifiers) == 1 {
+		log.Printf("[api] WARNING: no API_TOKEN or Privy verifier is configured; authenticated requests will be rejected")
 	}
 
 	handler := lib.NewHandler(lib.HandlerConfig{
 		Store:            lib.NewD1Store(db),
-		Verifier:         lib.NewStaticTokenVerifier(apiToken),
+		Verifier:         verifiers,
+		PrivyUsers:       privyUsers,
 		AllowedOrigins:   splitList(cloudflare.Getenv("API_ALLOWED_ORIGINS")),
 		ReceivingAddress: strings.TrimSpace(cloudflare.Getenv("POS_RECEIVING_ADDRESS")),
 		CheckoutBaseURL:  strings.TrimSpace(cloudflare.Getenv("CHECKOUT_BASE_URL")),
