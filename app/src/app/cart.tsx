@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { usePrivy } from '@privy-io/expo';
 import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { getDb } from '@/db/client';
@@ -16,6 +17,7 @@ import { Button, Card, Chip, Empty, Field, Row, SectionTitle, Stepper } from '@/
 export default function CartScreen() {
   const db = getDb();
   const router = useRouter();
+  const { getAccessToken } = usePrivy();
   const cart = useCart();
   const [discountMode, setDiscountMode] = useState<'none' | 'percent' | 'fixed'>('none');
   const [discountText, setDiscountText] = useState('');
@@ -48,6 +50,7 @@ export default function CartScreen() {
   const pay = async () => {
     setBusy(true);
     try {
+      const accessToken = await getAccessToken();
       const started = await startPayment(db, {
         items: cart.lines.map((l) => ({ productId: l.productId, qty: l.qty })),
         discount: cart.discount,
@@ -55,6 +58,7 @@ export default function CartScreen() {
         redeemPoints: cart.redeemPoints,
         method: cart.method,
         optionId: cart.method,
+        accessToken,
       });
       router.push(`/checkout/${started.payment.id}`);
     } catch (e) {

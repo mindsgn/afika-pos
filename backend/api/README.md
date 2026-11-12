@@ -1,7 +1,10 @@
 # afika-api (Cloudflare Worker)
 
-REST API for the Afika mobile app. It is a Go HTTP server compiled to Wasm and
-served by Cloudflare Workers through [`workers-go`](https://github.com/syumai/workers-go).
+REST API and hosted POS checkout for Afika. The Go HTTP server is compiled to
+Wasm and served by Cloudflare Workers through
+[`workers-go`](https://github.com/syumai/workers-go). The root website describes
+Afika POS for independent South African shops; `/pay/{id}` is the customer
+checkout page generated from requests created by the mobile POS.
 
 The API is a thin read/write layer over the shared `afika` D1 database that the
 scheduled workers populate:
@@ -25,6 +28,7 @@ All routes are versioned under `/v1` and return JSON.
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/v1/health` | Liveness probe. No authentication. |
+| `GET` | `/v1/auth/me` | Authenticated Privy user profile via the Privy Go SDK. |
 | `PUT` | `/v1/wallet` | Register or update a wallet address. |
 | `GET` | `/v1/balances?address=0x…` | Paginated token balances for a wallet. |
 | `GET` | `/v1/transactions?address=0x…` | Paginated transaction history for a wallet. |
@@ -34,6 +38,20 @@ All routes are versioned under `/v1` and return JSON.
 | `POST` | `/v1/pos/payments/{id}/asset` | Payer picks the coin/chain to pay with. Public. |
 | `POST` | `/v1/pos/payments/{id}/confirm` | Mark a checkout paid. Authenticated; used by the receipt worker and the app's demo button. |
 | `GET` | `/pay/{id}` | Server-rendered checkout page for the payer (HTML, not JSON). |
+
+## Tests
+
+Run API unit tests and browser checkout coverage from this directory:
+
+```bash
+npm test
+npm run test:e2e
+```
+
+The Playwright test starts a local Go HTTP server with an in-memory SQLite
+database, creates a payment through the API, selects an asset in Chromium, and
+checks the paid state after confirmation. Install the browser once with
+`npx playwright install chromium`.
 
 ### `PUT /v1/wallet`
 
@@ -244,8 +262,9 @@ retries from the worker and the app are safe.
 
 The shareable page itself: merchant details, ZAR amount and a form per asset.
 Selecting an asset POSTs to the same URL and comes back as a `303` redirect, so
-the page works without JavaScript; a small script also polls
-`GET /v1/pos/payments/{id}` to swap in the paid/expired state.
+the page works without JavaScript. An HTMX status check polls
+`GET /pay/{id}/status`; once payment completes, `HX-Redirect` reloads the page
+into its paid receipt state.
 
 ## Pagination
 
@@ -264,20 +283,22 @@ Unknown query parameters are rejected instead of ignored.
 
 ## Authentication
 
-Requests to `/v1/wallet`, `/v1/balances`, and `/v1/transactions` require the
-shared API token:
+Requests to protected API routes such as `/v1/wallet`, `/v1/balances`, and
+`/v1/transactions` require a valid legacy API token or configured Privy access token:
 
 ```http
 Authorization: Bearer <api-token>
 ```
 
-The token is read from the `API_TOKEN` environment variable and compared in
+The API accepts the configured legacy `API_TOKEN` and, when configured, Privy access tokens. Privy tokens are verified locally against `PRIVY_VERIFICATION_KEY` and must match `PRIVY_APP_ID`; `GET /v1/auth/me` uses the Privy Go SDK and `PRIVY_APP_SECRET` to fetch the signed-in user profile. The legacy token is compared in
 constant time. It carries no user identity: wallet, balance, and transaction
 lookups are keyed by the `address` in the request. `GET /v1/health` is the only
 route that does not require a token.
 
-If `API_TOKEN` is empty, every authenticated route returns `401`. Set it locally
-in `.dev.vars` and in production with `wrangler secret put API_TOKEN`.
+If both `API_TOKEN` and the Privy verifier settings are empty, authenticated
+routes return `401`. Configure `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY` for
+app sessions. Keep `API_TOKEN` for the receipt worker and any legacy clients;
+set it locally in `.dev.vars` and in production with `wrangler secret put API_TOKEN`.
 
 ## Errors
 
@@ -317,7 +338,10 @@ Set these as Worker variables/secrets (`wrangler secret put`, or `vars` in
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `API_TOKEN` | empty | **Required.** Shared bearer token for every authenticated route |
+| `API_TOKEN` | empty | Legacy bearer token used by the receipt worker and older clients |
+| `PRIVY_APP_ID` | empty | Privy app audience for access-token verification and profile API |
+| `PRIVY_APP_SECRET` | empty | Privy Go SDK credential for fetching the authenticated user profile |
+| `PRIVY_VERIFICATION_KEY` | empty | Privy P-256 PEM public key for ES256 access-token verification |
 | `DB_BINDING` | `afika` | D1 binding name declared in `wrangler.jsonc` |
 | `API_ALLOWED_ORIGINS` | empty | Comma-separated browser origins, or `*`. Empty disables CORS headers |
 | `POS_RECEIVING_ADDRESS` | empty | Fallback merchant wallet for POS payments that do not send `receiveAddress` |
@@ -341,6 +365,7 @@ The D1 binding itself is declared in `wrangler.jsonc`:
 cd api
 npm ci
 npm test        # go test ./...
+npm run test:e2e # Playwright checkout browser flow
 npm run build   # compile the Wasm bundle into ./build
 npm run dev     # wrangler dev on http://localhost:8787
 npm run deploy  # wrangler deploy
@@ -349,9 +374,10 @@ npm run deploy  # wrangler deploy
 `npm run build` regenerates `build/worker.mjs` and compiles `build/app.wasm`,
 which is what `wrangler.jsonc` points at. `build/` is git ignored.
 
-Tests are table-driven and never touch the network: the handler suite uses a
-fake store and verifier, and the store suite runs the real SQL against
-`modernc.org/sqlite` with both worker migrations applied.
+Unit tests are table-driven and never touch the network: the handler suite uses
+a fake store and verifier, and the store suite runs the real SQL against
+`modernc.org/sqlite` with both worker migrations applied. The Playwright test
+uses a local in-memory SQLite fixture and Chromium.
 
 ```console
 go test ./...

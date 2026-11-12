@@ -1,33 +1,29 @@
-# Afika
+# Afika POS
 
-An offline-first point-of-sale app for Android and iOS that takes **USDC, Bitcoin and Ethereum** payments.
-Built with Expo, Drizzle ORM, SQLite and TypeScript. Everything lives in a local database on the device.
+An offline-first point-of-sale app for Android and iOS, with a hosted checkout page for shareable online payments.
+Built with Expo, Drizzle ORM, SQLite and TypeScript. Till data lives in a local database on the device; online checkout requests are handled by the Go API on Cloudflare Workers.
 
-> **v0.1 simulates payments.** No wallet is connected and no real funds move. Exchange rates are fixed
-> placeholders in `src/domain/payment.ts`. You choose whether a payment passes or fails, or let it be random.
+> Offline/demo checkout can simulate a payment. Online crypto checkout creates a shareable link and depends on the configured API, receiving wallet, and payment monitoring worker.
 
 ---
 
 ## Short description
 
-Afika POS for small shops that accept USDC, Bitcoin and Ethereum, with stock, refunds and profit tracking.
+Afika POS for small shops, with offline sales and inventory, returns, profit reports, and shareable online crypto checkout.
 
 ## Full description
 
-Afika is a mobile point-of-sale system that runs entirely offline. A cashier builds a cart from a searchable
-product catalogue, applies a discount, attaches a loyalty customer, and pays in USDC, BTC or ETH. The sale is
-priced in rand, converted to the chosen coin at a simulated rate, and recorded with a transaction hash.
+Afika is an offline-first mobile point-of-sale system for independent South African shops. A cashier builds a cart from a searchable product catalogue, applies a discount, attaches a loyalty customer, and records a sale. For online checkout, the app creates a shareable link where customers can pay with BTC, USDC, ZARP, or EURC on supported networks. Demo mode remains available when the API cannot be reached.
 
 Behind the till sits a full back office: product and category management, inventory with a complete stock
 movement history, cost price tracking per sale, and a profit report that accounts for refunds and written-off stock.
 Completed sales can be partially or fully refunded, or voided outright, and every action produces a readable
-receipt that can be shared as text. All data is stored in SQLite through Drizzle, so the app works with no
-signal and no server.
+receipt that can be shared as text. Till records live in SQLite through Drizzle, so core selling and stock work without a signal. The Go API stores online payment requests and serves the customer checkout page.
 
 **Features**
 
 - Checkout and cart with stock limits, quantity steppers and live totals
-- Payments in USDC / BTC / ETH, simulated: **pass**, **fail** or **random** (failed attempts are logged)
+- Payments in BTC, USDC, ZARP, and EURC on supported networks; offline demo fallback (failed attempts are logged)
 - Discounts: percentage or fixed rand amount, spread across line items so refunds stay exact
 - Loyalty points: earn 1 point per R10 spent, redeem at 10c per point, reversed on refunds and voids
 - Refunds and returns: partial or full, per item, with optional restock for damaged goods
@@ -43,7 +39,7 @@ signal and no server.
 
 ## What it does, in one line
 
-Lets a shop sell, refund and track stock and profit offline, taking USDC, Bitcoin or Ethereum.
+Lets a shop sell, refund and track stock and profit offline, with shareable online checkout for crypto payments.
 
 ## Who it's for
 
@@ -58,16 +54,18 @@ load-shedding, patchy data and thin margins, so they need something that keeps w
 them whether they actually made money. I wanted to prove the core till (stock, refunds, voids, loyalty, profit)
 can be solid and well tested on its own before adding real wallet and exchange integrations.
 
-## What's new in v0.1
+## What's new in v0.3
 
-First release.
+The backend now serves a POS-focused website and HTMX-enabled customer checkout. The app sends Privy access tokens for authenticated checkout requests; the API verifies their signature and audience and uses the Privy Go SDK for the signed-in profile endpoint. The hosted checkout offers the same asset options as the app and refreshes when the receipt worker confirms a payment.
 
-- Offline SQLite database via Drizzle, created and seeded on first launch
-- Cart and checkout with simulated USDC / BTC / ETH payments (pass, fail, random)
+- Offline SQLite database via Drizzle; optional demo data is available in `src/db/seed.ts`
+- Cart and checkout with discounts, loyalty, offline fallback, and shareable online payment requests
 - Discounts, loyalty points, refunds and returns, voids
 - Receipts for sales and refunds, transaction history
 - Product, category and inventory management with stock movement history
 - Cost price and profit tracking
+- Hosted merchant landing page and shareable online checkout through `backend/api`
+- Playwright browser coverage for creating a checkout, selecting a payment asset, and displaying a paid receipt
 - Jest unit tests for domain logic and services, and Maestro end-to-end flows
 
 ---
@@ -75,28 +73,37 @@ First release.
 ## Getting started
 
 ```bash
-npm install
+cd app
+yarn install
 npx expo install --fix      # aligns native package versions with your Expo SDK
 npx expo run:android        # or: npx expo run:ios   (needs a dev build, not Expo Go)
 ```
 
-The first launch creates `crypto-pos.db` and seeds three categories, seven products and one demo customer
-("Thandi Mokoena", 120 points).
+The first launch creates `crypto-pos.db`. Demo catalog data is optional and is not inserted automatically.
 
 ## Tests
 
 **Unit tests (Jest)** run in plain Node against an in-memory SQLite database using the same SQL as the app:
 
 ```bash
+yarn test
+```
+
+Backend unit, browser, and Worker build checks run from `backend/api`:
+
+```bash
+cd backend/api
 npm test
+npm run test:e2e
+npm run build
 ```
 
 `better-sqlite3` is a native module; if `npm install` cannot build it, install your platform's build tools first.
 
 | Area | Files |
 | --- | --- |
-| Money, discounts, cart, loyalty, payment simulation, receipts | `tests/domain/*.test.ts` |
-| Catalogue, inventory, checkout, refunds, voids, history, profit | `tests/services/*.test.ts` |
+| Money, discounts, cart, loyalty, payment, receipts | `app/src/domain/*.test.ts` |
+| Catalogue, inventory, checkout, refunds, voids, history, profit | `app/src/services/*.test.ts` |
 
 **End-to-end tests (Maestro)** drive the real app. Install [Maestro](https://maestro.mobile.dev), start an
 emulator or simulator with the dev build installed, then:
@@ -105,17 +112,13 @@ emulator or simulator with the dev build installed, then:
 npm run test:e2e
 ```
 
-Each flow starts with `clearState: true`, so the seeded data is always the same.
+The current flows are `onboarding`, `add-product`, and `sell`; shared setup steps live in `.maestro/subflows/`.
 
 | Flow | Covers |
 | --- | --- |
-| `01_checkout_success` | cart, USDC payment passes, receipt, stock deducted |
-| `02_payment_failed_then_retry` | failed payment, cart kept, failure logged, retry |
-| `03_void_sale` | void with reason, stock restored |
-| `04_refund_return` | partial refund, restock, movement history, profit report |
-| `05_discount_and_loyalty` | percent discount, customer, points redemption |
-| `06_product_management` | create product, search, restock, movement history |
-| `07_categories` | add and delete categories, deletion guard |
+| `.maestro/onboarding.yaml` | business setup and first launch |
+| `.maestro/add-product.yaml` | add a product and verify the product list |
+| `.maestro/sell.yaml` | checkout a product and verify the receipt |
 | `08_product_search_stock_guard` | search filtering, cart stock limit |
 
 ## How it works

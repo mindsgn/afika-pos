@@ -7,6 +7,8 @@
 	"name": "afika-api",
 	"main": "./build/worker.mjs",
 	"compatibility_date": "2026-10-23",
+	"routes": [{ "pattern": "pos.phumzile.studio", "custom_domain": true }],
+	"vars": { "CHECKOUT_BASE_URL": "https://pos.phumzile.studio" },
 	"previews": {},
 	"build": {
 		"command": "npm run build"

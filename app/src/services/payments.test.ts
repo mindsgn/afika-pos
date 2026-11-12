@@ -13,7 +13,7 @@ afterAll(() => {
 
 describe('apiBaseUrl', () => {
   it('falls back to the deployed API', () => {
-    expect(apiBaseUrl()).toBe('https://afika.phumzile.studio');
+    expect(apiBaseUrl()).toBe('https://pos.phumzile.studio');
   });
 
   it('honours the configured URL and strips trailing slashes', () => {
@@ -23,7 +23,7 @@ describe('apiBaseUrl', () => {
 
   it('ignores a blank override', () => {
     process.env.EXPO_PUBLIC_API_URL = '   ';
-    expect(apiBaseUrl()).toBe('https://afika.phumzile.studio');
+    expect(apiBaseUrl()).toBe('https://pos.phumzile.studio');
   });
 });
 
@@ -41,8 +41,8 @@ describe('checkoutBaseUrl', () => {
 
 describe('paymentUrlFor', () => {
   it('builds the shareable /pay/{id} link', () => {
-    process.env.EXPO_PUBLIC_API_URL = 'https://afika.phumzile.studio';
-    expect(paymentUrlFor('abc123')).toBe('https://afika.phumzile.studio/pay/abc123');
+    process.env.EXPO_PUBLIC_API_URL = 'https://pos.phumzile.studio';
+    expect(paymentUrlFor('abc123')).toBe('https://pos.phumzile.studio/pay/abc123');
   });
 
   it('escapes ids that are not URL safe', () => {

@@ -14,7 +14,7 @@ import { PaymentOption, ZAR_PER_UNIT, getPaymentOption, toAssetAmount } from '@/
 import { PosError } from './errors';
 import { completeSale, createPendingSale, failSale, CheckoutInput } from './checkout';
 
-const DEFAULT_API_URL = 'https://afika.phumzile.studio';
+const DEFAULT_API_URL = 'https://pos.phumzile.studio';
 
 export function apiBaseUrl(): string {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
@@ -56,7 +56,7 @@ interface Envelope<T> {
   data: T;
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, accessToken?: string | null): Promise<T> {
   const token = apiToken();
   let response: Response;
   try {
@@ -64,7 +64,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init.headers ?? {}),
       },
     });
@@ -90,6 +90,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export interface StartPaymentInput extends CheckoutInput {
   optionId: string;
+  /** Privy access token for online checkout requests. Offline sales still work without it. */
+  accessToken?: string | null;
   /** Merchant wallet that receives the funds, when known. */
   receiveAddress?: string;
 }
@@ -137,7 +139,7 @@ export async function startPayment(db: PosDb, input: StartPaymentInput): Promise
           address: profile?.address ?? '',
         },
       }),
-    });
+    }, input.accessToken);
     id = created.id;
     paymentUrl = created.paymentUrl || paymentUrlFor(created.id);
     address = created.address || address;

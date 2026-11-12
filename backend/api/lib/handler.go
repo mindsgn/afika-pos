@@ -31,6 +31,7 @@ var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 type HandlerConfig struct {
 	Store    Store
 	Verifier TokenVerifier
+	PrivyUsers PrivyUserReader
 
 	// AllowedOrigins enables CORS for the listed browser origins. "*" allows
 	// any origin. An empty list disables CORS headers.
@@ -52,6 +53,7 @@ type HandlerConfig struct {
 type Handler struct {
 	store            Store
 	verifier         TokenVerifier
+	privyUsers       PrivyUserReader
 	allowedOrigins   []string
 	receivingAddress string
 	checkoutBaseURL  string
@@ -65,6 +67,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 	h := &Handler{
 		store:            cfg.Store,
 		verifier:         cfg.Verifier,
+		privyUsers:       cfg.PrivyUsers,
 		allowedOrigins:   cfg.AllowedOrigins,
 		receivingAddress: strings.TrimSpace(cfg.ReceivingAddress),
 		checkoutBaseURL:  strings.TrimRight(strings.TrimSpace(cfg.CheckoutBaseURL), "/"),
@@ -145,6 +148,11 @@ func (h *Handler) route(w http.ResponseWriter, r *http.Request) (status int, bod
 			return 0, nil, methodNotAllowed("GET, OPTIONS")
 		}
 		return http.StatusOK, healthEnvelope{Data: healthData{Status: "ok"}}, nil
+	case "/v1/auth/me":
+		if r.Method != http.MethodGet {
+			return 0, nil, methodNotAllowed("GET, OPTIONS")
+		}
+		return h.getPrivyProfile(w, r)
 	case "/v1/wallet":
 		if r.Method != http.MethodPut {
 			return 0, nil, methodNotAllowed("PUT, OPTIONS")

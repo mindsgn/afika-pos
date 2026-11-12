@@ -1,15 +1,18 @@
 {
   "name": "afika-api",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "build": "go run github.com/syumai/workers-go/cmd/workers-assets-gen -mode=go && GOOS=js GOARCH=wasm go build -o ./build/app.wasm .",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "test": "go test ./..."
+    "test": "go test ./...",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "htmx.org": "^2.0.11",
     "wrangler": "^4.154.0"
   }
 }
