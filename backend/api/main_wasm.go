@@ -31,14 +31,18 @@ func main() {
 	privyAppSecret := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_SECRET"))
 	privyClientID := strings.TrimSpace(cloudflare.Getenv("PRIVY_CLIENT_ID"))
 	var privyUsers lib.PrivyUserReader
-	if privyAppID != "" && privyAppSecret != "" {
+	var passwordless lib.PasswordlessClient
+	e2eMode := strings.EqualFold(strings.TrimSpace(cloudflare.Getenv("E2E_MODE")), "true")
+	if e2eMode {
+		privyUsers = demoUsers{}
+		passwordless = demoPasswordless{}
+	} else if privyAppID != "" && privyAppSecret != "" {
 		privyUsers, err = lib.NewPrivyUserAPI(privyAppID, privyAppSecret)
 		if err != nil {
 			log.Panicf("[api] configure Privy profile API: %v", err)
 		}
 	}
-	var passwordless lib.PasswordlessClient
-	if privyAppID != "" {
+	if !e2eMode && privyAppID != "" {
 		passwordless = lib.NewPrivyPasswordlessClient(privyAppID, privyClientID)
 	}
 	sessions := lib.NewSessionCodec(cloudflare.Getenv("SESSION_SECRET"))
@@ -47,7 +51,7 @@ func main() {
 	}
 	verifiers := lib.AnyTokenVerifier{lib.NewStaticTokenVerifier(apiToken)}
 	privyKey := strings.TrimSpace(cloudflare.Getenv("PRIVY_VERIFICATION_KEY"))
-	if privyAppID != "" || privyKey != "" {
+	if !e2eMode && (privyAppID != "" || privyKey != "") {
 		privyVerifier, err := lib.NewPrivyTokenVerifier(privyAppID, strings.ReplaceAll(privyKey, "\\n", "\n"))
 		if err != nil {
 			log.Panicf("[api] configure Privy verifier: %v", err)
