@@ -53,10 +53,11 @@ npm test
 npm run test:e2e
 ```
 
-The Playwright test starts a local Go HTTP server with an in-memory SQLite
-database, creates a payment through the API, selects an asset in Chromium, and
-checks the paid state after confirmation. It also drives the website sign-in
-(`e2e/signin.spec.ts`) against a fake Privy that accepts the code `000000`.
+The Playwright test starts the API with `wrangler dev` and a local D1 binding,
+applies the API migrations to D1, creates a payment through the Worker, selects
+an asset in Chromium, and checks the paid state after confirmation. `E2E_MODE`
+enables a fake Privy that accepts the code `000000`; the harness sets it only
+for the local test Worker.
 Install the browser once with `npx playwright install chromium`.
 
 ### `PUT /v1/wallet`
@@ -406,10 +407,9 @@ npm run deploy  # wrangler deploy
 `npm run build` regenerates `build/worker.mjs` and compiles `build/app.wasm`,
 which is what `wrangler.jsonc` points at. `build/` is git ignored.
 
-Unit tests are table-driven and never touch the network: the handler suite uses
-a fake store and verifier, and the store suite runs the real SQL against
-`modernc.org/sqlite` with both worker migrations applied. The Playwright test
-uses a local in-memory SQLite fixture and Chromium.
+Unit tests are table-driven and never touch the network. D1 integration checks
+and browser tests use Wrangler's local D1 database in local mode and do not
+access the remote database.
 
 ```console
 go test ./...

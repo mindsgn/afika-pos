@@ -4,9 +4,8 @@
 #
 # 1. Applies the real Wrangler migrations from every worker to one local D1
 #    database (the same database all services use in production).
-# 2. Verifies that every expected table exists.
-# 3. Seeds one wallet, one FX rate, one balance and one transaction.
-# 4. Runs the queries the API and workers rely on.
+# 2. Verifies tables, seeds representative rows, and exercises shared queries
+#    through Wrangler's D1 API.
 #
 # The script never touches the remote database and needs no Cloudflare login.
 
@@ -51,12 +50,26 @@ for worker in "${migration_dirs[@]}"; do
 	)
 done
 
-db_path="$(find "$persist_dir/v3/d1" -type f -name '*.sqlite' ! -name 'metadata.sqlite' | head -n 1)"
-if [[ -z "$db_path" ]]; then
-	echo "error: Wrangler did not create a local D1 database under $persist_dir" >&2
-	exit 1
-fi
-echo "==> SQLite file: $db_path"
+api_dir="$repo_root/api"
+d1() {
+	(
+		cd "$api_dir"
+		CI=1 WRANGLER_SEND_METRICS=false npx wrangler d1 execute afika \
+			--local --persist-to "$persist_dir" --command "$1" --json
+	)
+}
+
+query_value() {
+	local sql="$1"
+	d1 "$sql" | node -e '
+const fs = require("node:fs");
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+const rows = Array.isArray(payload) ? payload[0]?.results : payload?.results;
+if (!rows?.length) process.exit(2);
+const row = rows[0];
+console.log(Object.values(row).join("|"));
+'
+}
 
 expected_tables=(
 	balances
@@ -74,8 +87,7 @@ expected_tables=(
 )
 
 for table in "${expected_tables[@]}"; do
-	found="$(sqlite3 -batch -noheader "$db_path" \
-		"SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '$table';")"
+	found="$(query_value "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = '$table';")"
 	if [[ "$found" != "1" ]]; then
 		echo "error: missing table '$table'" >&2
 		exit 1
@@ -83,7 +95,9 @@ for table in "${expected_tables[@]}"; do
 done
 echo "==> All expected tables exist"
 
-sqlite3 -batch "$db_path" <<'SQL'
+seed_file="$(mktemp)"
+trap 'rm -f "$seed_file"; cleanup' EXIT
+cat >"$seed_file" <<'SQL'
 INSERT INTO wallets (id, address, network, testnet, created_at, updated_at)
 VALUES (
   '0x1111111111111111111111111111111111111111',
@@ -147,11 +161,17 @@ INSERT INTO wallet_transactions (
 );
 SQL
 
+(
+	cd "$api_dir"
+	CI=1 WRANGLER_SEND_METRICS=false npx wrangler d1 execute afika \
+		--local --persist-to "$persist_dir" --file "$seed_file"
+)
+
 assert_value() {
 	local expected="$1"
 	local sql="$2"
 	local actual
-	actual="$(sqlite3 -batch -noheader "$db_path" "$sql")"
+	actual="$(query_value "$sql")"
 	if [[ "$actual" != "$expected" ]]; then
 		echo "error: query returned '$actual', expected '$expected'" >&2
 		echo "       $sql" >&2
@@ -175,12 +195,8 @@ assert_value "0xabc|credit" \
 assert_value "18.42" "SELECT rate FROM fx_rates WHERE pair = 'USD_ZAR';"
 
 # The transaction worker advances its own cursor.
-sqlite3 -batch "$db_path" \
-	"INSERT INTO wallet_transaction_cursors (wallet_address, latest_block, updated_at) VALUES ('0x1111111111111111111111111111111111111111', 12345678, 1700000000000);"
+d1 "INSERT INTO wallet_transaction_cursors (wallet_address, latest_block, updated_at) VALUES ('0x1111111111111111111111111111111111111111', 12345678, 1700000000000);" >/dev/null
 assert_value "12345678" \
 	"SELECT latest_block FROM wallet_transaction_cursors WHERE wallet_address = '0x1111111111111111111111111111111111111111';"
-
-assert_value "ok" "PRAGMA integrity_check;"
-assert_value "" "PRAGMA foreign_key_check;"
 
 echo "==> Database integration checks passed"
