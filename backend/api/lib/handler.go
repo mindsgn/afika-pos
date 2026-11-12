@@ -29,9 +29,18 @@ var requestIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 // HandlerConfig wires the API's dependencies. Zero values select production
 // defaults, except Store and Verifier which have no safe default.
 type HandlerConfig struct {
-	Store    Store
-	Verifier TokenVerifier
+	Store      Store
+	Verifier   TokenVerifier
 	PrivyUsers PrivyUserReader
+
+	// Passwordless and Sessions enable the server-rendered website sign-in.
+	// When either is nil the /signin and /account pages report that sign-in is
+	// not configured.
+	Passwordless PasswordlessClient
+	Sessions     *SessionCodec
+	// InsecureSessionCookie drops the Secure flag from the session cookie. It
+	// exists for the local Playwright server, which runs over plain HTTP.
+	InsecureSessionCookie bool
 
 	// AllowedOrigins enables CORS for the listed browser origins. "*" allows
 	// any origin. An empty list disables CORS headers.
@@ -54,6 +63,9 @@ type Handler struct {
 	store            Store
 	verifier         TokenVerifier
 	privyUsers       PrivyUserReader
+	passwordless     PasswordlessClient
+	sessions         *SessionCodec
+	insecureCookie   bool
 	allowedOrigins   []string
 	receivingAddress string
 	checkoutBaseURL  string
@@ -68,6 +80,9 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		store:            cfg.Store,
 		verifier:         cfg.Verifier,
 		privyUsers:       cfg.PrivyUsers,
+		passwordless:     cfg.Passwordless,
+		sessions:         cfg.Sessions,
+		insecureCookie:   cfg.InsecureSessionCookie,
 		allowedOrigins:   cfg.AllowedOrigins,
 		receivingAddress: strings.TrimSpace(cfg.ReceivingAddress),
 		checkoutBaseURL:  strings.TrimRight(strings.TrimSpace(cfg.CheckoutBaseURL), "/"),
@@ -89,6 +104,9 @@ func NewHandler(cfg HandlerConfig) *Handler {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.servePayPage(w, r) {
+		return
+	}
+	if h.serveAuthSite(w, r) {
 		return
 	}
 	if handled := serveSite(w, r); handled {

@@ -1,0 +1,30 @@
+appId: phumzile.afika.pos
+---
+# Email + one-time-code sign-in. scripts/e2e.sh starts Metro with
+# EXPO_PUBLIC_E2E=1, so the app accepts the fixed test code without contacting
+# Privy and the flow stays offline. A fresh install has no business row, so the
+# boot screen always routes here before onboarding.
+- extendedWaitUntil:
+    visible:
+      id: "signin-email"
+    timeout: 30000
+- tapOn:
+    id: "signin-email"
+- inputText: "e2e@afika.test"
+# `hideKeyboard` is unreliable on this simulator and the keypad has no dismiss
+# key, so tapping the heading resigns the field before the button is reached.
+- tapOn:
+    id: "signin-heading"
+- tapOn:
+    id: "signin-send-code"
+- extendedWaitUntil:
+    visible:
+      id: "signin-code"
+    timeout: 15000
+- tapOn:
+    id: "signin-code"
+- inputText: "000000"
+- tapOn:
+    id: "signin-heading"
+- tapOn:
+    id: "signin-verify"

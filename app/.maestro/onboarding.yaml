@@ -1,0 +1,7 @@
+appId: phumzile.afika.pos
+name: Business onboarding
+---
+# Fresh install: the boot screen routes to onboarding because no business row
+# exists, and the details are saved locally before the Sell tab appears.
+- runFlow: subflows/start-app.yaml
+- runFlow: subflows/complete-onboarding.yaml

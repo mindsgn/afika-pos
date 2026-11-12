@@ -14,3 +14,15 @@ DB_BINDING=afika
 # PRIVY_APP_ID=your-privy-app-id
 # PRIVY_APP_SECRET=your-privy-app-secret
 # PRIVY_VERIFICATION_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+
+# Website sign-in (server-rendered /signin and /account).
+#
+# PRIVY_APP_ID enables the email one-time-code flow and PRIVY_APP_SECRET lets
+# the account page read the signed-in profile. PRIVY_CLIENT_ID is only needed
+# for apps that use a client id (same value as EXPO_PUBLIC_PRIVY_CLIENT_ID).
+#
+# SESSION_SECRET signs the HttpOnly session cookie. Use a long random value
+# locally and set the same value with `npx wrangler secret put SESSION_SECRET`
+# in production. Without it the sign-in pages report that sign-in is disabled.
+# PRIVY_CLIENT_ID=your-privy-client-id
+# SESSION_SECRET=replace-with-a-long-random-value

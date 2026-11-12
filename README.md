@@ -56,7 +56,11 @@ can be solid and well tested on its own before adding real wallet and exchange i
 
 ## What's new in v0.3
 
-The backend now serves a POS-focused website and HTMX-enabled customer checkout. The app sends Privy access tokens for authenticated checkout requests; the API verifies their signature and audience and uses the Privy Go SDK for the signed-in profile endpoint. The hosted checkout offers the same asset options as the app and refreshes when the receipt worker confirms a payment.
+The backend now serves a POS-focused website, HTMX-enabled customer checkout, and email one-time-code
+website sign-in (`/signin`, `/account`) alongside the app's Privy sign-in. The app sends Privy access
+tokens for authenticated checkout requests; the API verifies their signature and audience and uses the
+Privy Go SDK for the signed-in profile endpoint. The hosted checkout offers the same asset options as the
+app and refreshes when the receipt worker confirms a payment.
 
 - Offline SQLite database via Drizzle; optional demo data is available in `src/db/seed.ts`
 - Cart and checkout with discounts, loyalty, offline fallback, and shareable online payment requests
@@ -80,6 +84,17 @@ npx expo run:android        # or: npx expo run:ios   (needs a dev build, not Exp
 ```
 
 The first launch creates `crypto-pos.db`. Demo catalog data is optional and is not inserted automatically.
+
+Run the whole stack (Go API, every Cloudflare Worker, and the app) for local testing:
+
+```bash
+scripts/dev.sh            # backend + Expo Metro
+scripts/dev.sh backend    # backend only
+scripts/dev.sh app        # Expo Metro only
+```
+
+The backend applies the shared local D1 migrations and serves the API on `http://localhost:8787` plus each
+worker on its own port; see `backend/scripts/backend.sh`.
 
 ## Tests
 
@@ -109,14 +124,18 @@ npm run build
 emulator or simulator with the dev build installed, then:
 
 ```bash
-npm run test:e2e
+yarn e2e
 ```
 
-The current flows are `onboarding`, `add-product`, and `sell`; shared setup steps live in `.maestro/subflows/`.
+`scripts/e2e.sh` starts Metro with `EXPO_PUBLIC_E2E=1`, so the email/code sign-in screen accepts the fixed
+test code and the flows stay offline; real builds still require a genuine Privy code. It wipes only the
+app's SQLite database before each flow. The current flows are `onboarding`, `add-product`, and `sell`;
+shared setup steps live in `.maestro/subflows/`, and every flow runs `subflows/sign-in.yaml` before
+onboarding.
 
 | Flow | Covers |
 | --- | --- |
-| `.maestro/onboarding.yaml` | business setup and first launch |
+| `.maestro/onboarding.yaml` | email/code sign-in, business setup and first launch |
 | `.maestro/add-product.yaml` | add a product and verify the product list |
 | `.maestro/sell.yaml` | checkout a product and verify the receipt |
 | `08_product_search_stock_guard` | search filtering, cart stock limit |

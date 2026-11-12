@@ -37,7 +37,7 @@ export default function OnboardingScreen() {
   };
   const titles = ['Your business', 'Online presence', 'Location & logo'];
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.paper }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView testID="onboarding-screen" style={{ flex: 1, backgroundColor: colors.paper }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={{ flex: 1, justifyContent: 'center', padding: space.lg }}>
         <Text style={{ color: colors.muted, fontWeight: '700', marginBottom: 8 }}>AFIKA POS · STEP {step + 1} OF 3</Text>
         <Text style={{ fontSize: 30, fontWeight: '800', color: colors.ink }}>{existing ? 'Business details' : 'Set up your shop'}</Text>

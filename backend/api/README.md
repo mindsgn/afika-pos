@@ -38,6 +38,11 @@ All routes are versioned under `/v1` and return JSON.
 | `POST` | `/v1/pos/payments/{id}/asset` | Payer picks the coin/chain to pay with. Public. |
 | `POST` | `/v1/pos/payments/{id}/confirm` | Mark a checkout paid. Authenticated; used by the receipt worker and the app's demo button. |
 | `GET` | `/pay/{id}` | Server-rendered checkout page for the payer (HTML, not JSON). |
+| `GET` | `/signin` | Server-rendered website sign-in, email step (HTML). |
+| `POST` | `/signin` | Email a one-time code via Privy. |
+| `POST` | `/signin/verify` | Exchange the code for an HttpOnly session cookie. |
+| `POST` | `/signout` | Clear the session cookie. |
+| `GET` | `/account` | Signed-in account page; redirects to `/signin` without a session. |
 
 ## Tests
 
@@ -50,8 +55,9 @@ npm run test:e2e
 
 The Playwright test starts a local Go HTTP server with an in-memory SQLite
 database, creates a payment through the API, selects an asset in Chromium, and
-checks the paid state after confirmation. Install the browser once with
-`npx playwright install chromium`.
+checks the paid state after confirmation. It also drives the website sign-in
+(`e2e/signin.spec.ts`) against a fake Privy that accepts the code `000000`.
+Install the browser once with `npx playwright install chromium`.
 
 ### `PUT /v1/wallet`
 
@@ -300,6 +306,30 @@ routes return `401`. Configure `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY` for
 app sessions. Keep `API_TOKEN` for the receipt worker and any legacy clients;
 set it locally in `.dev.vars` and in production with `wrangler secret put API_TOKEN`.
 
+## Website sign-in
+
+The site is server-rendered, so sign-in is a normal form flow with no client
+JavaScript:
+
+1. `GET /signin` renders the email form.
+2. `POST /signin` validates the address and asks Privy to email a one-time code
+   (`POST https://auth.privy.io/api/v1/passwordless/init`).
+3. `POST /signin/verify` exchanges the code for a session
+   (`/api/v1/passwordless/authenticate`), then sets an `afika_session` cookie
+   and redirects to `/account`.
+4. `GET /account` shows the signed-in email and Privy user id; `POST /signout`
+   clears the cookie.
+
+The cookie is `HttpOnly`, `SameSite=Lax`, and signed with HMAC-SHA256 over the
+Privy user id and an expiry (`SESSION_SECRET`); it carries no other data and is
+valid for 24 hours. It is marked `Secure` everywhere except the local Playwright
+server.
+
+The pages need `PRIVY_APP_ID` and `SESSION_SECRET`; without them `/signin`
+reports that sign-in is not configured (`503`). Reading the profile on
+`/account` additionally needs `PRIVY_APP_SECRET`. Set `PRIVY_CLIENT_ID` when
+your Privy app uses a client id.
+
 ## Errors
 
 Errors use one envelope:
@@ -342,6 +372,8 @@ Set these as Worker variables/secrets (`wrangler secret put`, or `vars` in
 | `PRIVY_APP_ID` | empty | Privy app audience for access-token verification and profile API |
 | `PRIVY_APP_SECRET` | empty | Privy Go SDK credential for fetching the authenticated user profile |
 | `PRIVY_VERIFICATION_KEY` | empty | Privy P-256 PEM public key for ES256 access-token verification |
+| `PRIVY_CLIENT_ID` | empty | Privy client id for apps that use one; sent with passwordless requests |
+| `SESSION_SECRET` | empty | HMAC key for the website session cookie. Empty disables `/signin` and `/account` |
 | `DB_BINDING` | `afika` | D1 binding name declared in `wrangler.jsonc` |
 | `API_ALLOWED_ORIGINS` | empty | Comma-separated browser origins, or `*`. Empty disables CORS headers |
 | `POS_RECEIVING_ADDRESS` | empty | Fallback merchant wallet for POS payments that do not send `receiveAddress` |
@@ -401,9 +433,14 @@ the local D1 emulation, then start the dev server:
 (cd ../workers/balance && npx wrangler d1 migrations apply afika --local)
 (cd ../workers/forex && npx wrangler d1 migrations apply afika --local)
 (cd ../workers/transaction && npx wrangler d1 migrations apply afika --local)
+(cd ../workers/receipt && npx wrangler d1 migrations apply afika --local)
 (cd . && npx wrangler d1 migrations apply afika --local)
 npm run dev
 ```
+
+Or start the API and every worker together (one shared local D1 directory, all
+migrations applied) with `backend/scripts/backend.sh run`, or the whole stack
+including the Expo app with `scripts/dev.sh` from the repository root.
 
 Each worker keeps its own `.wrangler/` state, so use `--persist-to <dir>` on all
 commands if you want the API and workers to share one local database.
@@ -464,7 +501,10 @@ api/
 │   ├── validation.go # address and network normalisation
 │   ├── model.go      # API response models
 │   ├── payments.go   # POS payment model, D1 methods, HTTP handlers
-│   └── pay_page.go   # server-rendered /pay/{id} checkout page
+│   ├── pay_page.go   # server-rendered /pay/{id} checkout page
+│   ├── session.go    # signed website session cookie codec
+│   ├── privy_passwordless.go # Privy email one-time-code HTTP client
+│   └── auth_site.go  # server-rendered /signin and /account pages
 └── wrangler.jsonc
 
 `migrations/0002_pos_payments.sql` creates the `pos_payments` table.

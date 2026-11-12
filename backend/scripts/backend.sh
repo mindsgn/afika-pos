@@ -19,10 +19,15 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-services=(api balance forex transaction)
-service_dirs=(api workers/balance workers/forex workers/transaction)
-service_ports=(8787 8788 8789 8790)
-service_labels=("API" "balance worker" "forex worker" "transaction worker")
+services=(api balance forex transaction receipt)
+service_dirs=(api workers/balance workers/forex workers/transaction workers/receipt)
+service_ports=(8787 8788 8789 8790 8791)
+service_labels=("API" "balance worker" "forex worker" "transaction worker" "receipt worker")
+
+# Every service that owns migrations for the shared `afika` database. api and
+# receipt both define pos_payments (idempotent, distinct filenames); api comes
+# first so the checkout table exists before the reconciler starts.
+migration_dirs=(api workers/balance workers/forex workers/transaction workers/receipt)
 
 usage() {
 	cat <<'EOF'
@@ -51,9 +56,15 @@ die() {
 
 ensure_wrangler() {
 	local dir="$1"
-	if [[ ! -x "$dir/node_modules/.bin/wrangler" ]]; then
-		log "Installing dependencies for $dir"
+	if [[ -x "$dir/node_modules/.bin/wrangler" ]]; then
+		return
+	fi
+	log "Installing dependencies for $dir"
+	if [[ -f "$dir/package-lock.json" ]]; then
 		(cd "$dir" && npm ci --no-audit --no-fund --silent)
+	else
+		# workers/receipt has no committed lockfile yet.
+		(cd "$dir" && npm install --no-audit --no-fund --silent)
 	fi
 }
 
@@ -91,12 +102,12 @@ run_tests() {
 
 local_migrations() {
 	local persist_dir="$1"
-	local worker dir
+	local dir
 
-	for worker in balance forex transaction; do
-		dir="$repo_root/workers/$worker"
+	for dir in "${migration_dirs[@]}"; do
+		dir="$repo_root/$dir"
 		ensure_wrangler "$dir"
-		log "Applying local migrations for workers/$worker"
+		log "Applying local migrations for ${dir#"$repo_root/"}"
 		(
 			cd "$dir"
 			CI=1 WRANGLER_SEND_METRICS=false \
@@ -106,12 +117,12 @@ local_migrations() {
 }
 
 remote_migrations() {
-	local worker dir
+	local dir
 
-	for worker in balance forex transaction; do
-		dir="$repo_root/workers/$worker"
+	for dir in "${migration_dirs[@]}"; do
+		dir="$repo_root/$dir"
 		ensure_wrangler "$dir"
-		log "Applying remote migrations for workers/$worker"
+		log "Applying remote migrations for ${dir#"$repo_root/"}"
 		(
 			cd "$dir"
 			CI=1 WRANGLER_SEND_METRICS=false \
@@ -183,6 +194,7 @@ API:              http://localhost:${service_ports[0]}/v1/health
 Balance cron:     curl "http://localhost:${service_ports[1]}/__scheduled?cron=0+*+*+*+*"
 Forex cron:       curl "http://localhost:${service_ports[2]}/__scheduled?cron=0+*+*+*+*"
 Transaction cron: curl "http://localhost:${service_ports[3]}/__scheduled?cron=*/5+*+*+*+*"
+Receipt cron:     curl "http://localhost:${service_ports[4]}/__scheduled?cron=*+*+*+*+*"
 
 Press Ctrl-C to stop all services.
 EOF

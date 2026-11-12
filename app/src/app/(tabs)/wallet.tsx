@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useEmbeddedEthereumWallet, useLoginWithOAuth, usePrivy, OAuthProviderID } from '@privy-io/expo';
+import { useEmbeddedEthereumWallet, usePrivy } from '@privy-io/expo';
 import QRCodeStyled from 'react-native-qrcode-styled';
 import { getDb } from '@/db/client';
 import { useFocusData } from '@/hooks/useFocusData';
@@ -22,7 +22,6 @@ export default function WalletScreen() {
   const db = getDb();
   const router = useRouter();
   const { isReady, user, logout } = usePrivy();
-  const { login } = useLoginWithOAuth();
   const { wallets, create } = useEmbeddedEthereumWallet();
   const wallet = wallets?.[0];
   const { kernelAddress, loading } = useKernelClient(wallet);
@@ -43,14 +42,6 @@ export default function WalletScreen() {
   }, [wallet?.address, kernelAddress, setWallet]);
 
   const activeAddress = kernelAddress ?? wallet?.address ?? '';
-
-  const signIn = async (provider: OAuthProviderID) => {
-    try {
-      await login({ provider });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Sign in failed');
-    }
-  };
 
   const copy = async () => {
     await Clipboard.setStringAsync(activeAddress);
@@ -73,13 +64,13 @@ export default function WalletScreen() {
         <Card>
           <Text style={{ fontWeight: '800', color: colors.ink, fontSize: 16 }}>Sign in to activate your wallet</Text>
           <Text style={{ color: colors.muted, marginTop: 4, marginBottom: space.md }}>
-            Your wallet is created with Privy and secured by ZeroDev. You can sign in with Apple or Google.
+            Your wallet is created with Privy and secured by ZeroDev. Sign in with your email and a one-time code.
           </Text>
           <Button
             testID="wallet-signin"
             variant="lime"
-            label={Platform.OS === 'ios' ? 'Sign in with Apple' : 'Sign in with Google'}
-            onPress={() => signIn(Platform.OS === 'ios' ? 'apple' : 'google')}
+            label="Sign in with email"
+            onPress={() => router.push('/welcome')}
           />
         </Card>
       ) : (

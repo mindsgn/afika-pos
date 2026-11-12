@@ -1,0 +1,68 @@
+appId: phumzile.afika.pos
+---
+# Creates "Flat White" (SKU FLATWHITE, R32.00, cost R12.00, 20 in stock).
+#
+# The numeric keypad has no dismiss key and covers the fields below it. The
+# form dismisses the keyboard on drag, so each entry ends with a short swipe;
+# without it the next tap lands on a keypad button and types into the previous
+# field.
+- tapOn:
+    id: "tab-products"
+- tapOn:
+    id: "add-product"
+
+- tapOn:
+    id: "product-name"
+- inputText: "Flat White"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    id: "product-sku"
+- inputText: "FLATWHITE"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    id: "product-price"
+- inputText: "32.00"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    id: "product-cost"
+- inputText: "12.00"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    id: "product-stock"
+- inputText: "20"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- scrollUntilVisible:
+    element:
+      id: "product-reorder"
+    direction: DOWN
+- tapOn:
+    id: "product-reorder"
+- inputText: "5"
+- swipe:
+    direction: DOWN
+    duration: 300
+
+- scrollUntilVisible:
+    element:
+      id: "save-product"
+    direction: DOWN
+- tapOn:
+    id: "save-product"
+
+- assertVisible:
+    id: "manage-FLATWHITE"
