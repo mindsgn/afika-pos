@@ -115,6 +115,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.servePayPage(w, r) {
 		return
 	}
+	if h.serveDashboard(w, r) {
+		return
+	}
 	if h.serveAuthSite(w, r) {
 		return
 	}

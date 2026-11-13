@@ -129,9 +129,11 @@ func (s *Service) CreateSale(ctx context.Context, businessID string, input Creat
 		status = posdomain.StatusCompleted
 		paymentStatus = "success"
 		pointsEarned = cart.PointsEarned
-		cryptoAmount, err = posdomain.CryptoAmountFor(cart.Total, asset)
-		if err != nil {
-			return SaleDetail{}, internalf(err)
+		if asset.ID != "cash" {
+			cryptoAmount, err = posdomain.CryptoAmountFor(cart.Total, asset)
+			if err != nil {
+				return SaleDetail{}, internalf(err)
+			}
 		}
 	}
 
@@ -426,6 +428,9 @@ func (s *Service) cryptoAmountFor(sale posstore.Sale, provided string) (string, 
 	}
 	if strings.TrimSpace(sale.CryptoAmount) != "" && sale.CryptoAmount != "0" {
 		return sale.CryptoAmount, nil
+	}
+	if sale.PaymentMethod == "cash" {
+		return "0", nil
 	}
 	asset := posdomain.AssetByID(sale.PaymentMethod)
 	amount, err := posdomain.CryptoAmountFor(sale.Total, asset)

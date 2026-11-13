@@ -46,6 +46,9 @@ var Assets = map[string]Asset{
 // AssetByID resolves a payment option id, defaulting to USDC on Base.
 func AssetByID(id string) Asset {
 	key := strings.ToLower(strings.TrimSpace(id))
+	if key == "cash" {
+		return Asset{ID: "cash", Asset: "Cash", Decimals: 2, ZARPerOne: "1"}
+	}
 	if key == "" {
 		key = DefaultAssetID
 	}
@@ -58,6 +61,9 @@ func AssetByID(id string) Asset {
 // ValidateAssetID rejects payment option ids the POS does not support.
 func ValidateAssetID(id string) (Asset, error) {
 	key := strings.ToLower(strings.TrimSpace(id))
+	if key == "cash" {
+		return Asset{ID: "cash", Asset: "Cash", Decimals: 2, ZARPerOne: "1"}, nil
+	}
 	if key == "" {
 		return Assets[DefaultAssetID], nil
 	}

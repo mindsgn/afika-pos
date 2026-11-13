@@ -86,13 +86,13 @@ func TestSignInFlowIssuesSessionAndShowsAccount(t *testing.T) {
 		t.Fatal("code step was not rendered")
 	}
 
-	// Step two: code -> session cookie and redirect to the account page.
+	// Step two: code -> session cookie and redirect to the merchant dashboard.
 	rec = doForm(t, handler, "/signin/verify", url.Values{"email": {"merchant@example.com"}, "code": {"123456"}})
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("verify status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	if location := rec.Header().Get("Location"); location != "/account" {
-		t.Fatalf("Location = %q, want /account", location)
+	if location := rec.Header().Get("Location"); location != "/dashboard" {
+		t.Fatalf("Location = %q, want /dashboard", location)
 	}
 	if passwordless.gotCode != "123456" {
 		t.Fatalf("LoginWithCode got code %q", passwordless.gotCode)
@@ -187,8 +187,8 @@ func TestSignInGetRedirectsWhenAlreadySignedIn(t *testing.T) {
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
-	if location := rec.Header().Get("Location"); location != "/account" {
-		t.Fatalf("Location = %q, want /account", location)
+	if location := rec.Header().Get("Location"); location != "/dashboard" {
+		t.Fatalf("Location = %q, want /dashboard", location)
 	}
 }
 

@@ -80,7 +80,7 @@ func (h *Handler) serveAuthSite(w http.ResponseWriter, r *http.Request) bool {
 	case "/signin":
 		if r.Method == http.MethodGet {
 			if _, ok := h.sessionUser(r); ok {
-				http.Redirect(w, r, "/account", http.StatusSeeOther)
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 				return true
 			}
 			step := "email"
@@ -155,7 +155,7 @@ func (h *Handler) handleSignInVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.setSessionCookie(w, session.UserID)
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
 func (h *Handler) handleAccount(w http.ResponseWriter, r *http.Request) {

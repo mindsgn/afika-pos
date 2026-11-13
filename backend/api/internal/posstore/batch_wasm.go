@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"syscall/js"
 
 	"github.com/syumai/workers-go/cloudflare"
@@ -50,7 +51,7 @@ func (r *D1BatchRunner) Run(_ context.Context, statements []Statement) (err erro
 		if len(statement.Args) > 0 {
 			args := make([]any, len(statement.Args))
 			for j, arg := range statement.Args {
-				args[j] = arg
+				args[j] = d1JSArgument(arg)
 			}
 			prepared = prepared.Call("bind", args...)
 		}
@@ -72,6 +73,23 @@ func (r *D1BatchRunner) Run(_ context.Context, statements []Statement) (err erro
 		}
 	}
 	return nil
+}
+
+// d1JSArgument converts database/sql argument shapes to values accepted by
+// syscall/js. The SQL writer uses pointers for nullable numeric columns; a
+// non-nil pointer must be dereferenced and a nil pointer must bind as SQL NULL.
+func d1JSArgument(value any) any {
+	if value == nil {
+		return js.Null()
+	}
+	ref := reflect.ValueOf(value)
+	for ref.Kind() == reflect.Pointer || ref.Kind() == reflect.Interface {
+		if ref.IsNil() {
+			return js.Null()
+		}
+		ref = ref.Elem()
+	}
+	return ref.Interface()
 }
 
 // describeD1Error renders the D1Result error payload as a readable string.

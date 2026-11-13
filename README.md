@@ -54,13 +54,19 @@ load-shedding, patchy data and thin margins, so they need something that keeps w
 them whether they actually made money. I wanted to prove the core till (stock, refunds, voids, loyalty, profit)
 can be solid and well tested on its own before adding real wallet and exchange integrations.
 
-## What's new in v0.3
+## What's new in v0.4
 
-The backend now serves a POS-focused website, HTMX-enabled customer checkout, and email one-time-code
-website sign-in (`/signin`, `/account`) alongside the app's Privy sign-in. The app sends Privy access
+The backend now serves a POS-focused website, HTMX-enabled customer checkout and merchant dashboard,
+and email one-time-code website sign-in (`/signin`, `/account`, `/dashboard`) alongside the app's Privy sign-in. The app sends Privy access
 tokens for authenticated checkout requests; the API verifies their signature and audience and uses the
 Privy Go SDK for the signed-in profile endpoint. The hosted checkout offers the same asset options as the
 app and refreshes when the receipt worker confirms a payment.
+
+Signed-in merchants now land on a browser dashboard. It supports business
+onboarding, products and categories, inventory and stock movements, checkout,
+sales, refunds, voids, receipts, loyalty records, and profit insights. The
+dashboard uses the existing POS service with server-rendered pages enhanced by
+HTMX.
 
 - Offline SQLite database via Drizzle; optional demo data is available in `src/db/seed.ts`
 - Cart and checkout with discounts, loyalty, offline fallback, and shareable online payment requests
@@ -70,6 +76,7 @@ app and refreshes when the receipt worker confirms a payment.
 - Cost price and profit tracking
 - Hosted merchant landing page and shareable online checkout through `backend/api`
 - Playwright browser coverage for creating a checkout, selecting a payment asset, and displaying a paid receipt
+- Playwright merchant-dashboard coverage for onboarding, catalogue, inventory, checkout, refunds, voids, and insights
 - Jest unit tests for domain logic and services, and Maestro end-to-end flows
 
 ---

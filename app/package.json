@@ -1,6 +1,6 @@
 {
   "name": "afika",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "main": "entrypoint.js",
   "dependencies": {
     "@azure/core-asynciterator-polyfill": "^1.0.2",

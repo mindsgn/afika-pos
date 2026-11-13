@@ -21,6 +21,13 @@ scheduled workers populate:
 Apply the worker and API migrations before deploying (see
 [Migrations](#migrations)).
 
+Signed-in merchants land on `/dashboard`. The server-rendered, HTMX-enhanced
+dashboard uses the same POS service as the mobile app for business onboarding,
+products, categories, inventory and stock movements, checkout, sales, refunds,
+voids, receipts, loyalty, and profit insights. The dashboard requires the
+`afika_session` cookie established by `/signin`; POS API routes remain available
+to authenticated bearer-token clients.
+
 ## Endpoints
 
 All routes are versioned under `/v1` and return JSON.
@@ -46,15 +53,18 @@ All routes are versioned under `/v1` and return JSON.
 
 ## Tests
 
-Run API unit tests and browser checkout coverage from this directory:
+Run API unit tests and browser coverage for the merchant dashboard and customer
+checkout from this directory:
 
 ```bash
 npm test
 npm run test:e2e
 ```
 
-The Playwright test starts the API with `wrangler dev` and a local D1 binding,
-applies the API migrations to D1, creates a payment through the Worker, selects
+The Playwright tests start the API with `wrangler dev` and a local D1 binding,
+apply the API migrations, sign in with the local test code, and drive a merchant
+through onboarding, products, stock, checkout, refunds, voids, and insights. A
+separate customer checkout flow creates a payment through the Worker, selects
 an asset in Chromium, and checks the paid state after confirmation. `E2E_MODE`
 enables a fake Privy that accepts the code `000000`; the harness sets it only
 for the local test Worker.

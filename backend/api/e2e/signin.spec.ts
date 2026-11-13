@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('merchant signs in with an email code and sees their account', async ({ page }) => {
+test('merchant signs in with an email code and is sent to business onboarding', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/signin$/);
@@ -13,9 +13,8 @@ test('merchant signs in with an email code and sees their account', async ({ pag
   await page.getByLabel('Authentication code').fill('000000');
   await page.getByRole('button', { name: 'Verify and continue' }).click();
 
-  await expect(page).toHaveURL(/\/account$/);
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
-  await expect(page.getByText('merchant@example.com')).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard\/onboarding$/);
+  await expect(page.getByRole('heading', { name: 'Set up your business' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -39,4 +38,9 @@ test('account page requires a session', async ({ page }) => {
   await page.goto('/account');
   await expect(page).toHaveURL(/\/signin$/);
   await expect(page.getByRole('heading', { name: 'Sign in to Afika' })).toBeVisible();
+});
+
+test('dashboard requires a session', async ({ page }) => {
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/signin$/);
 });
