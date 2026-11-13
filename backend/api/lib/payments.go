@@ -8,9 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mindsgn-studio/afika-backend/api/internal/posdomain"
+	"github.com/mindsgn-studio/afika-backend/api/internal/posservice"
+	"github.com/mindsgn-studio/afika-backend/api/internal/posstore"
 )
 
 // POSPayment is a shareable checkout for a POS receipt. Amounts are stored in
@@ -34,25 +37,12 @@ type POSPayment struct {
 	CreatedAt       int64  `json:"createdAt"`
 	UpdatedAt       int64  `json:"updatedAt"`
 	ExpiresAt       int64  `json:"expiresAt"`
-}
 
-type posAsset struct {
-	Asset     string
-	Network   string
-	Decimals  int
-	ZARPerOne float64
-}
-
-// posAssets is the single source of truth for the options the checkout page
-// offers. Keep it in sync with src/domain/payment.ts in the app.
-var posAssets = map[string]posAsset{
-	"btc":           {Asset: "BTC", Network: "bitcoin", Decimals: 8, ZARPerOne: 1_200_000},
-	"usdc-base":     {Asset: "USDC", Network: "base", Decimals: 2, ZARPerOne: 18.5},
-	"usdc-ethereum": {Asset: "USDC", Network: "ethereum", Decimals: 6, ZARPerOne: 18.5},
-	"zarp-base":     {Asset: "ZARP", Network: "base", Decimals: 2, ZARPerOne: 1},
-	"zarp-ethereum": {Asset: "ZARP", Network: "ethereum", Decimals: 6, ZARPerOne: 1},
-	"eurc-base":     {Asset: "EURC", Network: "base", Decimals: 2, ZARPerOne: 20.1},
-	"eurc-ethereum": {Asset: "EURC", Network: "ethereum", Decimals: 6, ZARPerOne: 20.1},
+	// SaleID links the payment to the POS sale it settles. BusinessID scopes
+	// the payment to one merchant so confirmation can complete the sale
+	// without trusting client input.
+	SaleID     string `json:"saleId,omitempty"`
+	BusinessID string `json:"-"`
 }
 
 const (
@@ -64,16 +54,14 @@ const (
 	posPaymentTTL = 30 * time.Minute
 )
 
-func normalizePOSAsset(id string) (string, posAsset, error) {
-	key := strings.ToLower(strings.TrimSpace(id))
-	if key == "" {
-		key = "usdc-base"
+// normalizePOSAsset resolves a checkout asset option. The rate table lives in
+// posdomain so the API, the worker and the app share one source of truth.
+func normalizePOSAsset(id string) (string, posdomain.Asset, error) {
+	asset, err := posdomain.ValidateAssetID(id)
+	if err != nil {
+		return "", posdomain.Asset{}, err
 	}
-	asset, ok := posAssets[key]
-	if !ok {
-		return "", posAsset{}, fmt.Errorf("asset must be one of btc, usdc-base, usdc-ethereum, zarp-base, zarp-ethereum, eurc-base, eurc-ethereum")
-	}
-	return key, asset, nil
+	return asset.ID, asset, nil
 }
 
 func normalizePOSStatus(raw string) (string, error) {
@@ -92,11 +80,9 @@ func normalizePOSStatus(raw string) (string, error) {
 }
 
 // cryptoAmountFor converts a ZAR-cent amount into the asset amount at the
-// table rate, formatted to the asset's display precision.
-func cryptoAmountFor(amountCents int64, asset posAsset) string {
-	zar := float64(amountCents) / 100
-	units := zar / asset.ZARPerOne
-	return strconv.FormatFloat(units, 'f', asset.Decimals, 64)
+// option's rate. The division is exact (math/big) so crypto precision is kept.
+func cryptoAmountFor(amountCents int64, asset posdomain.Asset) (string, error) {
+	return posdomain.CryptoAmountFor(amountCents, asset)
 }
 
 func newPOSPaymentID() (string, error) {
@@ -119,11 +105,12 @@ func (s *D1Store) CreatePOSPayment(ctx context.Context, p POSPayment) (POSPaymen
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO pos_payments (id, receipt_no, amount_cents, currency, status, asset,
 			network, address, crypto_amount, payment_url, merchant_name, merchant_website,
-			merchant_address, tx_hash, created_at, updated_at, expires_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			merchant_address, tx_hash, sale_id, business_id, created_at, updated_at, expires_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.ID, p.ReceiptNo, p.AmountCents, p.Currency, p.Status, p.Asset, p.Network,
 		p.Address, p.CryptoAmount, p.PaymentURL, p.MerchantName, p.MerchantWebsite,
-		p.MerchantAddress, p.TxHash, p.CreatedAt, p.UpdatedAt, p.ExpiresAt,
+		p.MerchantAddress, nullString(p.TxHash), nullString(p.SaleID), nullString(p.BusinessID),
+		p.CreatedAt, p.UpdatedAt, p.ExpiresAt,
 	)
 	if err != nil {
 		return POSPayment{}, fmt.Errorf("insert pos payment: %w", err)
@@ -139,19 +126,21 @@ func (s *D1Store) GetPOSPayment(ctx context.Context, id string) (POSPayment, err
 	}
 
 	var (
-		p      POSPayment
-		txHash sql.NullString
+		p          POSPayment
+		txHash     sql.NullString
+		saleID     sql.NullString
+		businessID sql.NullString
 	)
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, receipt_no, amount_cents, currency, status, asset, network,
 		        address, crypto_amount, payment_url, merchant_name, merchant_website,
-		        merchant_address, tx_hash, created_at, updated_at, expires_at
+		        merchant_address, tx_hash, sale_id, business_id, created_at, updated_at, expires_at
 		 FROM pos_payments WHERE id = ?`, id,
 	).Scan(
 		&p.ID, &p.ReceiptNo, &p.AmountCents, &p.Currency, &p.Status, &p.Asset,
 		&p.Network, &p.Address, &p.CryptoAmount, &p.PaymentURL, &p.MerchantName,
-		&p.MerchantWebsite, &p.MerchantAddress, &txHash, &p.CreatedAt, &p.UpdatedAt,
-		&p.ExpiresAt,
+		&p.MerchantWebsite, &p.MerchantAddress, &txHash, &saleID, &businessID,
+		&p.CreatedAt, &p.UpdatedAt, &p.ExpiresAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return POSPayment{}, ErrPOSPaymentNotFound
@@ -160,6 +149,8 @@ func (s *D1Store) GetPOSPayment(ctx context.Context, id string) (POSPayment, err
 		return POSPayment{}, fmt.Errorf("get pos payment: %w", err)
 	}
 	p.TxHash = txHash.String
+	p.SaleID = saleID.String
+	p.BusinessID = businessID.String
 	return p, nil
 }
 
@@ -203,7 +194,11 @@ type createPOSPaymentRequest struct {
 	Currency       string `json:"currency"`
 	Asset          string `json:"asset"`
 	ReceiveAddress string `json:"receiveAddress"`
-	Merchant       struct {
+	// SaleID links the checkout link to a pending POS sale. When set, the
+	// server reads the amount, receipt number, and merchant details from that
+	// sale instead of trusting the request body.
+	SaleID   string `json:"saleId"`
+	Merchant struct {
 		Name    string `json:"name"`
 		Website string `json:"website"`
 		Address string `json:"address"`
@@ -232,13 +227,6 @@ func (h *Handler) createPOSPayment(w http.ResponseWriter, r *http.Request) (int,
 		return 0, nil, apiErr
 	}
 
-	receiptNo := strings.TrimSpace(request.ReceiptNo)
-	if receiptNo == "" || len(receiptNo) > 64 {
-		return 0, nil, validation("receiptNo is required and must be at most 64 characters.")
-	}
-	if request.AmountCents <= 0 {
-		return 0, nil, validation("amountCents must be greater than zero.")
-	}
 	assetID, asset, err := normalizePOSAsset(request.Asset)
 	if err != nil {
 		return 0, nil, validation(err.Error())
@@ -250,9 +238,86 @@ func (h *Handler) createPOSPayment(w http.ResponseWriter, r *http.Request) (int,
 	if currency != "ZAR" {
 		return 0, nil, validation("currency must be ZAR.")
 	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), h.requestTimeout)
+	defer cancel()
+
+	// When the link is created from a sale, the sale is authoritative: the
+	// amount, receipt number, and merchant details come from the database, so
+	// a tampered client cannot ask for a cheaper checkout.
+	var sale *posservice.SaleDetail
+	var business *posstore.Business
+	if saleID := strings.TrimSpace(request.SaleID); saleID != "" {
+		if h.pos == nil {
+			return 0, nil, posNotConfigured()
+		}
+		owner, apiErr := h.posOwner(r)
+		if apiErr != nil {
+			return 0, nil, apiErr
+		}
+		merchant, err := h.pos.RequireBusiness(ctx, owner)
+		if err != nil {
+			return 0, nil, h.posError(err)
+		}
+		business = &merchant
+		detail, err := h.pos.GetSale(ctx, merchant.ID, saleID)
+		if err != nil {
+			return 0, nil, h.posError(err)
+		}
+		if detail.Sale.Status != "pending" {
+			return 0, nil, &apiError{
+				status:  http.StatusConflict,
+				code:    posservice.CodeSaleNotPending,
+				message: "Only pending sales can be paid.",
+			}
+		}
+		sale = &detail
+	}
+
+	receiptNo := strings.TrimSpace(request.ReceiptNo)
+	amountCents := request.AmountCents
 	address := strings.TrimSpace(request.ReceiveAddress)
+	merchantName := strings.TrimSpace(request.Merchant.Name)
+	merchantWebsite := strings.TrimSpace(request.Merchant.Website)
+	merchantAddress := strings.TrimSpace(request.Merchant.Address)
+	if sale != nil {
+		if receiptNo != "" && receiptNo != sale.Sale.ReceiptNo {
+			return 0, nil, validation("receiptNo does not match the linked sale.")
+		}
+		if request.AmountCents != 0 && request.AmountCents != sale.Sale.Total {
+			return 0, nil, validation("amountCents does not match the linked sale total.")
+		}
+		receiptNo = sale.Sale.ReceiptNo
+		amountCents = sale.Sale.Total
+		if business != nil {
+			if merchantName == "" {
+				merchantName = business.Name
+			}
+			if merchantWebsite == "" {
+				merchantWebsite = business.Website
+			}
+			if merchantAddress == "" {
+				merchantAddress = business.Address
+			}
+			if address == "" {
+				address = business.WalletAddress
+			}
+		}
+	}
+	if receiptNo == "" || len(receiptNo) > 64 {
+		return 0, nil, validation("receiptNo is required and must be at most 64 characters.")
+	}
+	if amountCents <= 0 {
+		return 0, nil, validation("amountCents must be greater than zero.")
+	}
 	if address == "" {
 		address = strings.TrimSpace(h.receivingAddress)
+	}
+
+	cryptoAmount, err := cryptoAmountFor(amountCents, asset)
+	if err != nil {
+		h.logf("pos payment amount: %v", err)
+		return 0, nil, internalError()
 	}
 
 	id, err := newPOSPaymentID()
@@ -265,24 +330,26 @@ func (h *Handler) createPOSPayment(w http.ResponseWriter, r *http.Request) (int,
 	payment := POSPayment{
 		ID:              id,
 		ReceiptNo:       receiptNo,
-		AmountCents:     request.AmountCents,
+		AmountCents:     amountCents,
 		Currency:        currency,
 		Status:          posStatusPending,
 		Asset:           assetID,
 		Network:         asset.Network,
 		Address:         address,
-		CryptoAmount:    cryptoAmountFor(request.AmountCents, asset),
+		CryptoAmount:    cryptoAmount,
 		PaymentURL:      h.publicBaseURL(r) + "/pay/" + id,
-		MerchantName:    strings.TrimSpace(request.Merchant.Name),
-		MerchantWebsite: strings.TrimSpace(request.Merchant.Website),
-		MerchantAddress: strings.TrimSpace(request.Merchant.Address),
+		MerchantName:    merchantName,
+		MerchantWebsite: merchantWebsite,
+		MerchantAddress: merchantAddress,
+		SaleID:          strings.TrimSpace(request.SaleID),
 		CreatedAt:       now.UnixMilli(),
 		UpdatedAt:       now.UnixMilli(),
 		ExpiresAt:       now.Add(posPaymentTTL).UnixMilli(),
 	}
+	if business != nil {
+		payment.BusinessID = business.ID
+	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), h.requestTimeout)
-	defer cancel()
 	saved, err := h.store.CreatePOSPayment(ctx, payment)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -339,7 +406,12 @@ func (h *Handler) selectPOSAsset(w http.ResponseWriter, r *http.Request) (int, a
 
 	payment.Asset = assetID
 	payment.Network = asset.Network
-	payment.CryptoAmount = cryptoAmountFor(payment.AmountCents, asset)
+	cryptoAmount, err := cryptoAmountFor(payment.AmountCents, asset)
+	if err != nil {
+		h.logf("select pos asset amount: %v", err)
+		return 0, nil, internalError()
+	}
+	payment.CryptoAmount = cryptoAmount
 	payment.UpdatedAt = time.Now().UnixMilli()
 	updated, err := h.store.UpdatePOSPayment(ctx, payment)
 	if err != nil {
@@ -379,8 +451,25 @@ func (h *Handler) confirmPOSPayment(w http.ResponseWriter, r *http.Request) (int
 		return 0, nil, validation("Only pending payments can be confirmed.")
 	}
 
+	txHash := strings.TrimSpace(request.TxHash)
+
+	// Settle the linked sale before flipping the payment to paid. If the sale
+	// cannot be completed the payment stays pending, so the receipt worker
+	// retries instead of publishing a paid link for an unrecorded sale.
+	if payment.SaleID != "" && payment.BusinessID != "" {
+		if h.pos == nil {
+			return 0, nil, posNotConfigured()
+		}
+		if _, err := h.pos.CompleteSale(ctx, payment.BusinessID, payment.SaleID, posservice.CompleteSaleInput{
+			TxHash:       txHash,
+			CryptoAmount: payment.CryptoAmount,
+		}); err != nil {
+			return 0, nil, h.posError(err)
+		}
+	}
+
 	payment.Status = posStatusPaid
-	payment.TxHash = strings.TrimSpace(request.TxHash)
+	payment.TxHash = txHash
 	payment.UpdatedAt = time.Now().UnixMilli()
 	updated, err := h.store.UpdatePOSPayment(ctx, payment)
 	if err != nil {
