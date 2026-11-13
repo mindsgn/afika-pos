@@ -6,7 +6,10 @@ import (
 	"database/sql"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/mindsgn-studio/afika-backend/api/internal/posservice"
+	"github.com/mindsgn-studio/afika-backend/api/internal/posstore"
 	"github.com/mindsgn-studio/afika-backend/api/lib"
 	"github.com/syumai/workers-go"
 	"github.com/syumai/workers-go/cloudflare"
@@ -71,8 +74,19 @@ func main() {
 		AllowedOrigins:   splitList(cloudflare.Getenv("API_ALLOWED_ORIGINS")),
 		ReceivingAddress: strings.TrimSpace(cloudflare.Getenv("POS_RECEIVING_ADDRESS")),
 		CheckoutBaseURL:  strings.TrimSpace(cloudflare.Getenv("CHECKOUT_BASE_URL")),
+		POS:              newPOSService(db, binding),
 	})
 	workers.Serve(handler)
+}
+
+// newPOSService wires the merchant POS use cases. Reads use the d1 database/sql
+// driver; every multi-row write goes through D1Database.batch() because the D1
+// driver has no transaction support.
+func newPOSService(db *sql.DB, binding string) *posservice.Service {
+	service := posservice.New(posstore.NewWithRunner(db, posstore.NewD1BatchRunner(binding)))
+	// Receipts print Cape Town time regardless of where the Worker runs.
+	service.SetLocation(time.FixedZone("SAST", 2*3600))
+	return service
 }
 
 func envOrDefault(name, fallback string) string {

@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mindsgn-studio/afika-backend/api/internal/posservice"
 )
 
 const (
@@ -53,6 +55,11 @@ type HandlerConfig struct {
 	// When empty the request host is used.
 	CheckoutBaseURL string
 
+	// POS serves the merchant point-of-sale API under /v1/pos. When nil those
+	// routes report POS_NOT_CONFIGURED; the checkout-link payment routes keep
+	// working because they only need Store.
+	POS *posservice.Service
+
 	RequestID      func() string
 	Logger         *log.Logger
 	RequestTimeout time.Duration
@@ -69,6 +76,7 @@ type Handler struct {
 	allowedOrigins   []string
 	receivingAddress string
 	checkoutBaseURL  string
+	pos              *posservice.Service
 	requestID        func() string
 	logger           *log.Logger
 	requestTimeout   time.Duration
@@ -86,6 +94,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		allowedOrigins:   cfg.AllowedOrigins,
 		receivingAddress: strings.TrimSpace(cfg.ReceivingAddress),
 		checkoutBaseURL:  strings.TrimRight(strings.TrimSpace(cfg.CheckoutBaseURL), "/"),
+		pos:              cfg.POS,
 		requestID:        cfg.RequestID,
 		logger:           cfg.Logger,
 		requestTimeout:   cfg.RequestTimeout,
@@ -130,7 +139,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-Id")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, X-Request-Id")
 		w.Header().Set("Access-Control-Max-Age", "600")
 	}
 	if r.Method == http.MethodOptions && origin != "" {
@@ -208,6 +217,8 @@ func (h *Handler) route(w http.ResponseWriter, r *http.Request) (status int, bod
 	default:
 		if path := r.URL.Path; strings.HasPrefix(path, "/v1/pos/payments/") {
 			return h.routePOSPayment(w, r)
+		} else if strings.HasPrefix(path, "/v1/pos/") {
+			return h.routePOS(w, r)
 		}
 		return 0, nil, &apiError{
 			status:  http.StatusNotFound,

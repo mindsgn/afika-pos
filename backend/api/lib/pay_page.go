@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/mindsgn-studio/afika-backend/api/internal/posdomain"
 )
 
 // payAssetOrder fixes the order the payer sees on the checkout page. Labels
@@ -195,7 +197,11 @@ func (h *Handler) applyPayAsset(r *http.Request, id, rawAsset string) (POSPaymen
 	}
 	payment.Asset = assetID
 	payment.Network = asset.Network
-	payment.CryptoAmount = cryptoAmountFor(payment.AmountCents, asset)
+	cryptoAmount, err := cryptoAmountFor(payment.AmountCents, asset)
+	if err != nil {
+		return POSPayment{}, err
+	}
+	payment.CryptoAmount = cryptoAmount
 	payment.UpdatedAt = time.Now().UnixMilli()
 	return h.store.UpdatePOSPayment(ctx, payment)
 }
@@ -206,13 +212,12 @@ func (h *Handler) renderPayPage(w http.ResponseWriter, p POSPayment) {
 		options = append(options, payOptionView{ID: o.ID, Label: o.Label, Sub: o.Sub, Selected: o.ID == p.Asset})
 	}
 
-	asset, ok := posAssets[p.Asset]
-	if !ok {
-		asset = posAssets["usdc-base"]
-	}
+	asset := posdomain.AssetByID(p.Asset)
 	crypto := p.CryptoAmount
 	if strings.TrimSpace(crypto) == "" {
-		crypto = cryptoAmountFor(p.AmountCents, asset)
+		if amount, err := cryptoAmountFor(p.AmountCents, asset); err == nil {
+			crypto = amount
+		}
 	}
 	view := payPageView{
 		Payment:       p,

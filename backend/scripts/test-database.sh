@@ -77,7 +77,18 @@ expected_tables=(
 	networks
 	portfolio_snapshots
 	portfolio_summaries
+	pos_businesses
+	pos_categories
+	pos_customers
+	pos_idempotency
 	pos_payments
+	pos_products
+	pos_receipt_counters
+	pos_refund_items
+	pos_refunds
+	pos_sale_items
+	pos_sales
+	pos_stock_movements
 	stocks
 	tokens
 	wallet_settings
@@ -193,6 +204,20 @@ assert_value "0xabc|credit" \
 
 # Workers read the latest FX rate by pair key.
 assert_value "18.42" "SELECT rate FROM fx_rates WHERE pair = 'USD_ZAR';"
+
+# POS checkout links can be tied to the sale they settle.
+assert_value "2" \
+	"SELECT count(*) FROM pragma_table_info('pos_payments') WHERE name IN ('sale_id', 'business_id');"
+
+# POS receipt numbers come from a per-business counter that increments atomically.
+d1 "INSERT INTO pos_businesses (id, owner_id, name, created_at, updated_at) VALUES ('biz-check', 'did:privy:check', 'Check Shop', 1700000000000, 1700000000000);" >/dev/null
+d1 "INSERT INTO pos_receipt_counters (business_id, next_no) VALUES ('biz-check', 1) ON CONFLICT(business_id) DO UPDATE SET next_no = next_no + 1;" >/dev/null
+d1 "INSERT INTO pos_receipt_counters (business_id, next_no) VALUES ('biz-check', 1) ON CONFLICT(business_id) DO UPDATE SET next_no = next_no + 1;" >/dev/null
+assert_value "2" "SELECT next_no FROM pos_receipt_counters WHERE business_id = 'biz-check';"
+
+# The POS batch guard only accepts the sentinel row value 1.
+assert_value "1" \
+	"SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'pos_guard';"
 
 # The transaction worker advances its own cursor.
 d1 "INSERT INTO wallet_transaction_cursors (wallet_address, latest_block, updated_at) VALUES ('0x1111111111111111111111111111111111111111', 12345678, 1700000000000);" >/dev/null
