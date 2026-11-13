@@ -9,20 +9,22 @@ DB_BINDING=afika
 # Optional. Comma-separated browser origins allowed by CORS, or "*".
 # API_ALLOWED_ORIGINS=http://localhost:8081
 
-# Optional Privy access-token verification. Use the P-256 PEM verification key
-# from your Privy app settings.
+# Optional Privy access-token verification. The API fetches signing keys from
+# the app-specific JWKS endpoint; set the matching app ID below.
 # PRIVY_APP_ID=your-privy-app-id
 # PRIVY_APP_SECRET=your-privy-app-secret
-# PRIVY_VERIFICATION_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
 
 # Website sign-in (server-rendered /signin and /account).
 #
 # PRIVY_APP_ID enables the email one-time-code flow and PRIVY_APP_SECRET lets
-# the account page read the signed-in profile. PRIVY_CLIENT_ID is only needed
-# for apps that use a client id (same value as EXPO_PUBLIC_PRIVY_CLIENT_ID).
+# the account page read the signed-in profile. PRIVY_CLIENT_ID is the app
+# client id from the Privy dashboard (the same value as privyClientId in
+# app/app.json). When that client requires a registered native app identifier,
+# set PRIVY_NATIVE_APP_ID to the allowlisted bundle id (phumzile.afika.pos).
 #
 # SESSION_SECRET signs the HttpOnly session cookie. Use a long random value
 # locally and set the same value with `npx wrangler secret put SESSION_SECRET`
 # in production. Without it the sign-in pages report that sign-in is disabled.
 # PRIVY_CLIENT_ID=your-privy-client-id
+# PRIVY_NATIVE_APP_ID=phumzile.afika.pos
 # SESSION_SECRET=replace-with-a-long-random-value

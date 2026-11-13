@@ -30,19 +30,25 @@ type PasswordlessSession struct {
 
 // PrivyPasswordlessClient calls Privy's auth API over HTTP.
 type PrivyPasswordlessClient struct {
-	appID      string
-	clientID   string
-	baseURL    string
-	httpClient *http.Client
+	appID       string
+	clientID    string
+	nativeAppID string
+	baseURL     string
+	httpClient  *http.Client
 }
 
 // NewPrivyPasswordlessClient builds a client for one Privy app.
-func NewPrivyPasswordlessClient(appID, clientID string) *PrivyPasswordlessClient {
+//
+// The passwordless endpoints are client-facing: when clientID identifies an app
+// client (rather than a web origin), Privy also requires the native app
+// identifier to be allowlisted for that client (e.g. phumzile.afika.pos).
+func NewPrivyPasswordlessClient(appID, clientID, nativeAppID string) *PrivyPasswordlessClient {
 	return &PrivyPasswordlessClient{
-		appID:      strings.TrimSpace(appID),
-		clientID:   strings.TrimSpace(clientID),
-		baseURL:    defaultPrivyAuthBaseURL,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		appID:       strings.TrimSpace(appID),
+		clientID:    strings.TrimSpace(clientID),
+		nativeAppID: strings.TrimSpace(nativeAppID),
+		baseURL:     defaultPrivyAuthBaseURL,
+		httpClient:  &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
@@ -71,6 +77,11 @@ func (c *PrivyPasswordlessClient) post(ctx context.Context, path string, body an
 	if c.clientID != "" {
 		req.Header.Set("privy-client-id", c.clientID)
 	}
+	if c.nativeAppID != "" {
+		// Header used by the Privy SDKs for app clients that require a
+		// registered native application identifier.
+		req.Header.Set("x-native-app-identifier", c.nativeAppID)
+	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("call Privy: %w", err)
@@ -81,7 +92,14 @@ func (c *PrivyPasswordlessClient) post(ctx context.Context, path string, body an
 		return fmt.Errorf("read Privy response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("Privy returned status %d", resp.StatusCode)
+		detail := strings.TrimSpace(string(payload))
+		if len(detail) > 512 {
+			detail = detail[:512]
+		}
+		if detail == "" {
+			return fmt.Errorf("Privy returned status %d", resp.StatusCode)
+		}
+		return fmt.Errorf("Privy returned status %d: %s", resp.StatusCode, detail)
 	}
 	if out == nil {
 		return nil

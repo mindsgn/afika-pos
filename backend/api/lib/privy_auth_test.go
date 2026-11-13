@@ -5,9 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
+	"encoding/base64"
+	"fmt"
+	"math/big"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -19,11 +21,13 @@ func TestPrivyTokenVerifierChecksSignatureAndClaims(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	der, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	verifier, err := NewPrivyTokenVerifier("app-test", string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
+	const kid = "test-key"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintf(w, `{"keys":[{"kty":"EC","crv":"P-256","alg":"ES256","use":"sig","kid":%q,"x":%q,"y":%q}]}`,
+			kid, encodeInt(key.X), encodeInt(key.Y))
+	}))
+	defer server.Close()
+	verifier, err := NewPrivyTokenVerifier("app-test", server.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +35,9 @@ func TestPrivyTokenVerifierChecksSignatureAndClaims(t *testing.T) {
 		Issuer: "privy.io", Subject: "did:privy:merchant-123", Audience: jwt.ClaimStrings{"app-test"},
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 	}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodES256, claims).SignedString(key)
+	unsigned := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	unsigned.Header["kid"] = kid
+	token, err := unsigned.SignedString(key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,11 +63,18 @@ func TestPrivyTokenVerifierChecksSignatureAndClaims(t *testing.T) {
 
 func mustSignJWT(t *testing.T, key *ecdsa.PrivateKey, claims jwt.RegisteredClaims) string {
 	t.Helper()
-	token, err := jwt.NewWithClaims(jwt.SigningMethodES256, claims).SignedString(key)
+	unsigned := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	unsigned.Header["kid"] = "test-key"
+	token, err := unsigned.SignedString(key)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return token
+}
+
+func encodeInt(n *big.Int) string {
+	bytes := n.FillBytes(make([]byte, 32))
+	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
 type fakePrivyVerifier struct {

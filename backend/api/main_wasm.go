@@ -19,9 +19,11 @@ import (
 const (
 	// defaultDBBinding matches the shared `afika` D1 binding in wrangler.jsonc.
 	defaultDBBinding = "afika"
+	privyJWKSURL     = "https://auth.privy.io/api/v1/apps/cmuqob0zx011s0cjqgmza7ovk/jwks.json"
 )
 
 func main() {
+	bindGlobalFetch()
 	binding := envOrDefault("DB_BINDING", defaultDBBinding)
 	db, err := sql.Open("d1", binding)
 	if err != nil {
@@ -33,6 +35,7 @@ func main() {
 	privyAppID := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_ID"))
 	privyAppSecret := strings.TrimSpace(cloudflare.Getenv("PRIVY_APP_SECRET"))
 	privyClientID := strings.TrimSpace(cloudflare.Getenv("PRIVY_CLIENT_ID"))
+	privyNativeAppID := strings.TrimSpace(cloudflare.Getenv("PRIVY_NATIVE_APP_ID"))
 	var privyUsers lib.PrivyUserReader
 	var passwordless lib.PasswordlessClient
 	e2eMode := strings.EqualFold(strings.TrimSpace(cloudflare.Getenv("E2E_MODE")), "true")
@@ -46,16 +49,15 @@ func main() {
 		}
 	}
 	if !e2eMode && privyAppID != "" {
-		passwordless = lib.NewPrivyPasswordlessClient(privyAppID, privyClientID)
+		passwordless = lib.NewPrivyPasswordlessClient(privyAppID, privyClientID, privyNativeAppID)
 	}
 	sessions := lib.NewSessionCodec(cloudflare.Getenv("SESSION_SECRET"))
 	if passwordless != nil && sessions == nil {
 		log.Printf("[api] WARNING: SESSION_SECRET is not set; website sign-in is disabled")
 	}
 	verifiers := lib.AnyTokenVerifier{lib.NewStaticTokenVerifier(apiToken)}
-	privyKey := strings.TrimSpace(cloudflare.Getenv("PRIVY_VERIFICATION_KEY"))
-	if !e2eMode && (privyAppID != "" || privyKey != "") {
-		privyVerifier, err := lib.NewPrivyTokenVerifier(privyAppID, strings.ReplaceAll(privyKey, "\\n", "\n"))
+	if !e2eMode && privyAppID != "" {
+		privyVerifier, err := lib.NewPrivyTokenVerifier(privyAppID, privyJWKSURL)
 		if err != nil {
 			log.Panicf("[api] configure Privy verifier: %v", err)
 		}

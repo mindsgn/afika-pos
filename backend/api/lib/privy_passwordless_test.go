@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestPrivyPasswordlessSendCodePostsEmail(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewPrivyPasswordlessClient("app-test", "client-test")
+	client := NewPrivyPasswordlessClient("app-test", "client-test", "")
 	client.baseURL = server.URL
 	if err := client.SendCode(context.Background(), "merchant@example.com"); err != nil {
 		t.Fatalf("SendCode: %v", err)
@@ -37,6 +38,39 @@ func TestPrivyPasswordlessSendCodePostsEmail(t *testing.T) {
 	}
 }
 
+func TestPrivyPasswordlessSendsNativeAppIdentifier(t *testing.T) {
+	var gotNativeAppID string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotNativeAppID = r.Header.Get("x-native-app-identifier")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewPrivyPasswordlessClient("app-test", "client-test", "phumzile.afika.pos")
+	client.baseURL = server.URL
+	if err := client.SendCode(context.Background(), "merchant@example.com"); err != nil {
+		t.Fatalf("SendCode: %v", err)
+	}
+	if gotNativeAppID != "phumzile.afika.pos" {
+		t.Errorf("x-native-app-identifier = %q, want %q", gotNativeAppID, "phumzile.afika.pos")
+	}
+}
+
+func TestPrivyPasswordlessReportsErrorBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":"Invalid app client ID"}`))
+	}))
+	defer server.Close()
+
+	client := NewPrivyPasswordlessClient("app-test", "client-test", "")
+	client.baseURL = server.URL
+	err := client.SendCode(context.Background(), "merchant@example.com")
+	if err == nil || !strings.Contains(err.Error(), "Invalid app client ID") {
+		t.Fatalf("SendCode error = %v, want Privy response body", err)
+	}
+}
+
 func TestPrivyPasswordlessLoginWithCodeReturnsSession(t *testing.T) {
 	var gotPath string
 	var gotBody map[string]string
@@ -48,7 +82,7 @@ func TestPrivyPasswordlessLoginWithCodeReturnsSession(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewPrivyPasswordlessClient("app-test", "")
+	client := NewPrivyPasswordlessClient("app-test", "", "")
 	client.baseURL = server.URL
 	session, err := client.LoginWithCode(context.Background(), "merchant@example.com", "123456")
 	if err != nil {
@@ -72,7 +106,7 @@ func TestPrivyPasswordlessRejectsErrorStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewPrivyPasswordlessClient("app-test", "")
+	client := NewPrivyPasswordlessClient("app-test", "", "")
 	client.baseURL = server.URL
 	if err := client.SendCode(context.Background(), "merchant@example.com"); err == nil {
 		t.Fatal("non-2xx response was accepted")
@@ -95,7 +129,7 @@ func TestPrivyPasswordlessRejectsIncompleteSession(t *testing.T) {
 			}))
 			defer server.Close()
 
-			client := NewPrivyPasswordlessClient("app-test", "")
+			client := NewPrivyPasswordlessClient("app-test", "", "")
 			client.baseURL = server.URL
 			if _, err := client.LoginWithCode(context.Background(), "merchant@example.com", "123456"); err == nil {
 				t.Fatal("incomplete session was accepted")
@@ -105,7 +139,7 @@ func TestPrivyPasswordlessRejectsIncompleteSession(t *testing.T) {
 }
 
 func TestPrivyPasswordlessRequiresAppID(t *testing.T) {
-	client := NewPrivyPasswordlessClient("", "")
+	client := NewPrivyPasswordlessClient("", "", "")
 	if err := client.SendCode(context.Background(), "merchant@example.com"); err == nil {
 		t.Fatal("missing app id was accepted")
 	}

@@ -297,14 +297,15 @@ Requests to protected API routes such as `/v1/wallet`, `/v1/balances`, and
 Authorization: Bearer <api-token>
 ```
 
-The API accepts the configured legacy `API_TOKEN` and, when configured, Privy access tokens. Privy tokens are verified locally against `PRIVY_VERIFICATION_KEY` and must match `PRIVY_APP_ID`; `GET /v1/auth/me` uses the Privy Go SDK and `PRIVY_APP_SECRET` to fetch the signed-in user profile. The legacy token is compared in
+The API accepts the configured legacy `API_TOKEN` and, when configured, Privy access tokens. Privy tokens are verified against the app's JWKS endpoint and must match `PRIVY_APP_ID`; `GET /v1/auth/me` uses the Privy Go SDK and `PRIVY_APP_SECRET` to fetch the signed-in user profile. The legacy token is compared in
 constant time. It carries no user identity: wallet, balance, and transaction
 lookups are keyed by the `address` in the request. `GET /v1/health` is the only
 route that does not require a token.
 
 If both `API_TOKEN` and the Privy verifier settings are empty, authenticated
-routes return `401`. Configure `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY` for
-app sessions. Keep `API_TOKEN` for the receipt worker and any legacy clients;
+routes return `401`. Configure `PRIVY_APP_ID` for app sessions. The verifier
+fetches signing keys from the app-specific JWKS endpoint configured in
+`main_wasm.go` and refreshes its key cache periodically. Keep `API_TOKEN` for the receipt worker and any legacy clients;
 set it locally in `.dev.vars` and in production with `wrangler secret put API_TOKEN`.
 
 ## Website sign-in
@@ -328,8 +329,10 @@ server.
 
 The pages need `PRIVY_APP_ID` and `SESSION_SECRET`; without them `/signin`
 reports that sign-in is not configured (`503`). Reading the profile on
-`/account` additionally needs `PRIVY_APP_SECRET`. Set `PRIVY_CLIENT_ID` when
-your Privy app uses a client id.
+`/account` additionally needs `PRIVY_APP_SECRET`. When the Privy app uses an app
+client, set `PRIVY_CLIENT_ID` to that client id and `PRIVY_NATIVE_APP_ID` to a
+native app identifier allowed for it (for the Expo app, `phumzile.afika.pos`).
+Both values are also sent on `/api/v1/passwordless/authenticate`.
 
 ## Errors
 
@@ -372,8 +375,8 @@ Set these as Worker variables/secrets (`wrangler secret put`, or `vars` in
 | `API_TOKEN` | empty | Legacy bearer token used by the receipt worker and older clients |
 | `PRIVY_APP_ID` | empty | Privy app audience for access-token verification and profile API |
 | `PRIVY_APP_SECRET` | empty | Privy Go SDK credential for fetching the authenticated user profile |
-| `PRIVY_VERIFICATION_KEY` | empty | Privy P-256 PEM public key for ES256 access-token verification |
-| `PRIVY_CLIENT_ID` | empty | Privy client id for apps that use one; sent with passwordless requests |
+| `PRIVY_CLIENT_ID` | empty | Privy app client id (same as `privyClientId` in `app/app.json`); sent with passwordless requests |
+| `PRIVY_NATIVE_APP_ID` | empty | Native app identifier allowed for `PRIVY_CLIENT_ID` (e.g. `phumzile.afika.pos`); sent as `x-native-app-identifier` |
 | `SESSION_SECRET` | empty | HMAC key for the website session cookie. Empty disables `/signin` and `/account` |
 | `DB_BINDING` | `afika` | D1 binding name declared in `wrangler.jsonc` |
 | `API_ALLOWED_ORIGINS` | empty | Comma-separated browser origins, or `*`. Empty disables CORS headers |
